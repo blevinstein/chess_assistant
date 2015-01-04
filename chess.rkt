@@ -43,7 +43,7 @@
     "m"))
 
 (define bg-white (esc 48 5 246))
-(define bg-black (esc 48 5 242))
+(define bg-black (esc 48 5 240))
 (define fg-white (esc 97))
 (define fg-black (esc 30))
 (define reset (esc 0))
