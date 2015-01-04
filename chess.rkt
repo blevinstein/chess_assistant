@@ -52,11 +52,14 @@
 
 (define (new-grid)
   (append
-    (list (map (λ (piece) (cons 'black piece)) back-row))
-    (list (build-list 8 (λ (i) (cons 'black 'P))))
-    (build-list 4 (λ (i) (build-list 8 (λ (i) null))))
+    (list (map (λ (piece) (cons 'white piece)) back-row))
     (list (build-list 8 (λ (i) (cons 'white 'P))))
-    (list (map (λ (piece) (cons 'white piece)) back-row))))
+    (build-list 4 (λ (i) (build-list 8 (λ (i) null))))
+    (list (build-list 8 (λ (i) (cons 'black 'P))))
+    (list (map (λ (piece) (cons 'black piece)) back-row))))
+
+(define (grid-ref grid rank file)
+  (list-ref (list-ref grid rank) file))
 
 ; print subroutines
 
@@ -81,7 +84,7 @@
     (display (hash-ref file-string i))
     (display " ")
     (for ([j (in-range 8)])
-      (define square (list-ref (list-ref grid i) j))
+      (define square (grid-ref grid i j))
       (print-square (if (equal? (modulo (+ i j) 2) 0) 'black 'white) square))
     (displayln reset)))
 
@@ -90,7 +93,7 @@
 (define (grid-player-position grid player)
   (filter (compose1 not null?)
     (for*/list ([rank (in-range 8)] [file (in-range 8)])
-      (define square (list-ref (list-ref grid rank) file))
+      (define square (grid-ref grid rank file))
       (match square
         [(cons color piece)
          (if (equal? color player)
@@ -105,7 +108,9 @@
 
 (define (new-position) (grid->position (new-grid)))
 
-(define (position-white position) (car position))
-(define (position-black position) (cdr position))
+(define (position-player position player)
+  (if (equal? player 'white) (car position) (cdr position)))
 
 (print-grid (new-grid))
+
+(position-player (new-position) 'white)
