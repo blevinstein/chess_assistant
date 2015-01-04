@@ -111,6 +111,8 @@
 (define (position-player position player)
   (if (equal? player 'white) (car position) (cdr position)))
 
+; TODO position->grid
+
 (print-grid (new-grid))
 
 (position-player (new-position) 'white)
