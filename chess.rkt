@@ -75,8 +75,9 @@
     (list (map (λ (piece) (cons 'black piece)) back-row))))
 
 ; get a player-piece from a grid
-(define (grid-ref grid rank file)
-  (list-ref (list-ref grid rank) file))
+(define (grid-ref grid location)
+  (match location [(cons rank file)
+    (list-ref (list-ref grid rank) file)]))
 
 ; print subroutines
 
@@ -93,15 +94,12 @@
 (define (print-grid grid)
   (display "  ")
   (for ([j (in-range 8)])
-    (display " ")
-    (display (file-string j))
-    (display " "))
+    (display (string-append " " (file-string j) " ")))
   (displayln "")
   (for ([i (in-range 8)])
-    (display (rank-string i))
-    (display " ")
+    (display (string-append (rank-string i) " "))
     (for ([j (in-range 8)])
-      (define player-piece (grid-ref grid i j))
+      (define player-piece (grid-ref grid (cons i j)))
       (print-square (if (equal? (modulo (+ i j) 2) 0) 'black 'white) player-piece))
     (displayln reset)))
 
@@ -128,7 +126,7 @@
 (define (grid-player-position grid player)
   (filter (compose1 not null?)
     (for*/list ([rank (in-range 8)] [file (in-range 8)])
-      (define player-piece (grid-ref grid rank file))
+      (define player-piece (grid-ref grid (cons rank file)))
       (match player-piece 
         [(cons color piece)
          (if (equal? color player)
@@ -136,11 +134,30 @@
              null)]
         [_ null]))))
 
-; create a new board
+; create a new position
 (define (new-position) (grid->position (new-grid)))
+
+(define position-white car)
+(define position-black cdr)
 
 (define (position-player position player)
   (if (equal? player 'white) (car position) (cdr position)))
+
+; get a player-piece from a position
+(define (position-ref position location)
+  (define black-at-location (position-player-ref (position-black position) location))
+  (define white-at-location (position-player-ref (position-white position) location))
+  (cond
+    [(not (null? black-at-location)) (cons 'black black-at-location)]
+    [(not (null? white-at-location)) (cons 'white white-at-location)]
+    [true null]))
+
+; get a piece from a player-position
+(define (position-player-ref position-player location)
+  (define piece-at-location (filter (λ (pl) (equal? (cdr pl) location)) position-player))
+  (if (empty? piece-at-location)
+    null
+    (car (first piece-at-location))))
 
 ; TODO position->grid
 
@@ -157,18 +174,25 @@
       (positive? rank) (< rank 8)
       (positive? file) (< file 8))]))
 
-; (all-offsets (1 . 2)) = '( (1 . 2) (-1 . 2) (-1 . -2) (1 . -2)
-;                            (2 . 1) (2 . -1) (-2 . -1) (-2 . 1) )
-; (all-offsets (1 . 1)) = '( (1 . 1) (-1 . 1) (-1 . -1) (1 . -1) )
+; returns all offsets that can be created from transformations of the given offset
 (define (all-offsets offset)
+  (define (all-offsets-partial offset)
+    (match offset
+      [(cons rank file) (list (cons rank file) (cons (- rank) file)
+                              (cons rank (- file)) (cons (- rank) (- file)))]))
   (match offset
-    [(cons x x) (all-directions offset)]
-    [(cons x y) (append (all-directions offset) (all-directions (cons y x)))]))
+    [(cons x x) (all-offsets-partial offset)]
+    [(cons x y) (append (all-offsets-partial offset) (all-offsets-partial (cons y x)))]))
 
-(define (all-directions offset)
-  (match offset
-    [(cons rank file) (list (cons rank file) (cons (- rank) file)
-                            (cons rank (- file)) (cons (- rank) (- file)))]))
+; returns the moves a leaper can make
+(define (leaper-moves offset position source)
+  (filter in-bounds
+    (map (curry add-location source) (all-offsets offset))))
+
+; returns the moves a knight can make
+(define knight-moves (curry leaper-moves '(1 . 2)))
+
+;(define (rider-path offset position source)
 
 (print-grid (new-grid))
 
