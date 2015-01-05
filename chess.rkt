@@ -176,23 +176,52 @@
 
 ; returns all offsets that can be created from transformations of the given offset
 (define (all-offsets offset)
-  (define (all-offsets-partial offset)
-    (match offset
-      [(cons rank file) (list (cons rank file) (cons (- rank) file)
-                              (cons rank (- file)) (cons (- rank) (- file)))]))
-  (match offset
-    [(cons x x) (all-offsets-partial offset)]
-    [(cons x y) (append (all-offsets-partial offset) (all-offsets-partial (cons y x)))]))
+  (define (all-transformations offset)
+    (match offset [(cons rank file)
+      (list
+        (cons rank file)
+        (cons (- rank) file)
+        (cons rank (- file))
+        (cons (- rank) (- file))
+        (cons file rank)
+        (cons (- file) rank)
+        (cons file (- rank))
+        (cons (- file) (- rank)))]))
+  (remove-duplicates (all-transformations offset)))
 
 ; returns the moves a leaper can make
 (define (leaper-moves offset position source)
   (filter in-bounds
     (map (curry add-location source) (all-offsets offset))))
 
-; returns the moves a knight can make
-(define knight-moves (curry leaper-moves '(1 . 2)))
+; returns all moves a rider can make along a single path
+(define (rider-path offset position source)
+  (define dest (add-location source offset))
+  (define piece-at-dest (position-ref position dest))
+  (cond
+    [(not (in-bounds dest)) null]
+    [(null? piece-at-dest) (cons dest (rider-path offset position dest))]
+    [true (list dest)]))
 
-;(define (rider-path offset position source)
+(define (rider-moves offset position source)
+  (append*
+    (map (lambda (direction) (rider-path direction position source))
+      (all-offsets offset))))
+
+; defines piece moves in terms of leapers and riders
+(define knight-moves (curry leaper-moves '(1 . 2)))
+(define rook-moves (curry rider-moves '(1 . 0)))
+(define bishop-moves (curry rider-moves '(1 . 1)))
+(define (queen-moves position source)
+  (append
+    (rider-moves '(1 . 0) position source)
+    (rider-moves '(1 . 1) position source)))
+(define (king-moves position source)
+  (append
+    (leaper-moves '(1 . 0) position source)
+    (leaper-moves '(1 . 1) position source)))
 
 (print-grid (new-grid))
+
+(rook-moves (new-position) '(3 . 3))
 
