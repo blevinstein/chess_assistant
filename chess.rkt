@@ -2,12 +2,13 @@
 
 ; informal types
 ; location : (rank . file)
-; player-piece : (player . piece)
+; color-piece : (color . piece)
 ; piece-location : (piece . location)
-; grid : ( ( player-piece+ )+ )
+; grid : ( ( color-piece+ )+ )
 ;        ( row+ )
 ; position: ( ( piece-location+ ) . ( piece-location+ ) )
 ;           ( white-piece-locations . black-piece-locations )
+; move : (color piece source dest)
 
 ; gives the point value of each piece
 (define piece-values
@@ -33,6 +34,38 @@
 ; gives the number representing a rank
 (define (rank-string rank)
   (number->string (+ rank 1)))
+
+; performs subtraction of character values
+(define (char-diff a b) (- (char->integer a) (char->integer b)))
+
+; converts ranks a-h into indices 0-7
+(define (char->rank c)
+  (when (or (char<? c #\a) (char>? c #\h)) (raise "out of bounds"))
+  (char-diff c #\a))
+
+; converts files 1-8 into indices 0-7
+(define (char->file c)
+  (when (or (char<? c #\1) (char>? c #\8)) (raise "out of bounds"))
+  (char-diff c #\1))
+
+; creates locations from string representation
+(define (new-location str)
+  (cons (char->rank (string-ref str 0))
+        (char->file (string-ref str 1))))
+
+; location members
+(define location-rank car)
+(define location-file cdr)
+
+; move : (color piece source destination)
+(define (new-move str)
+  '())
+
+; move members
+(define move-color first)
+(define move-piece second)
+(define move-source third)
+(define move-dest fourth)
 
 ; gives the letter representing a file
 (define (file-string file)
@@ -65,10 +98,6 @@
 (define fg-black (esc 30))
 (define reset (esc 0))
 
-; location members
-(define location-rank car)
-(define location-file cdr)
-
 ; create a new grid
 (define (new-grid)
   (append
@@ -78,19 +107,19 @@
     (list (build-list 8 (λ (i) (cons 'black 'P))))
     (list (map (λ (piece) (cons 'black piece)) back-row))))
 
-; get a player-piece from a grid
+; get a color-piece from a grid
 (define (grid-ref grid location)
   (match location [(cons rank file)
     (list-ref (list-ref grid rank) file)]))
 
 ; print subroutines
 
-(define (print-square background player-piece)
+(define (print-square background color-piece)
   (display (if (equal? background 'black) bg-black bg-white))
   (display " ")
-  (match player-piece
-    [(cons player piece)
-      (display (if (equal? player 'black) fg-black fg-white))
+  (match color-piece
+    [(cons color piece)
+      (display (if (equal? color 'black) fg-black fg-white))
       (display (piece-code piece))]
     [null (display " ")])
   (display " "))
@@ -103,13 +132,13 @@
   (for ([i (in-range 8)])
     (display (string-append (rank-string i) " "))
     (for ([j (in-range 8)])
-      (define player-piece (grid-ref grid (cons i j)))
-      (print-square (if (equal? (modulo (+ i j) 2) 0) 'black 'white) player-piece))
+      (define color-piece (grid-ref grid (cons i j)))
+      (print-square (if (equal? (modulo (+ i j) 2) 0) 'black 'white) color-piece))
     (displayln reset)))
 
-(define (player-piece-repr player-piece)
-  (match player-piece
-    [(cons player piece) (string-append (symbol->string player) " " (symbol->string piece))]
+(define (color-piece-repr color-piece)
+  (match color-piece
+    [(cons color piece) (string-append (symbol->string color) " " (symbol->string piece))]
     [_ "\u2205"]))
 
 (define (piece-location-repr piece-location)
@@ -118,7 +147,7 @@
 
 (define (location-repr location)
   (match location
-    [(cons rank file) (string-append (rank-string rank) (file-string file))]))
+    [(cons rank file) (string-append (file-string file) (rank-string rank))]))
 
 ; grid->position conversion code
 
@@ -146,17 +175,17 @@
 (define position-black cdr)
 
 ; gets the position of a specified player
-(define (position-player position player)
-  (if (equal? player 'white) (position-white position) (position-black position)))
+(define (position-player position color)
+  (if (equal? color 'white) (position-white position) (position-black position)))
 
-; get a player-piece from a position
+; get a color-piece from a position
 (define (position-ref position location)
   (define black-at-location (position-player-ref (position-black position) location))
   (define white-at-location (position-player-ref (position-white position) location))
   (cond
     [(not (null? black-at-location)) (cons 'black black-at-location)]
     [(not (null? white-at-location)) (cons 'white white-at-location)]
-    [true null]))
+    [else null]))
 
 ; get a piece from a player-position
 (define (position-player-ref position-player location)
@@ -207,7 +236,7 @@
   (cond
     [(not (in-bounds dest)) null]
     [(null? piece-at-dest) (cons dest (rider-path offset position dest))]
-    [true (list dest)]))
+    [else (list dest)]))
 
 (define (rider-moves offset position source)
   (append*
@@ -238,10 +267,23 @@
       (list (add-location source '(0 . 1)))]
     [(equal? color 'black)
       (list (add-location source '(0 . -1)))]
-    [true (raise)]))
+    [else (raise)]))
 
 (print-grid (new-grid))
 
-(rook-moves (new-position) '(3 . 3))
-(pawn-moves (new-position) '(1 . 4))
+(map location-repr (rook-moves (new-position) '(3 . 3)))
+(map location-repr (pawn-moves (new-position) '(1 . 4)))
+(map location-repr (pawn-moves (new-position) '(6 . 4)))
+
+(define (repl)
+  (let loop ()
+    (display "> ")
+    (define input (read-line))
+    (when (eof-object? input) (exit))
+    (displayln (new-location input))
+    ; TODO given a square, show moves
+    ; TODO given a move, make the move
+    (loop)))
+
+(repl)
 
