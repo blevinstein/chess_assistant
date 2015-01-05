@@ -1,7 +1,7 @@
 #lang racket
 
 ; informal types
-; location : (rank . file)
+; location : (file . rank)
 ; color-piece : (color . piece)
 ; piece-location : (piece . location)
 ; grid : ( ( color-piece+ )+ )
@@ -31,41 +31,28 @@
     'P "\u265f")
     piece))
 
+; returns a - b using character codes
+(define (char-diff a b) (- (char->integer a) (char->integer b)))
+
 ; gives the number representing a rank
 (define (rank-string rank)
   (number->string (+ rank 1)))
 
-; performs subtraction of character values
-(define (char-diff a b) (- (char->integer a) (char->integer b)))
+; returns true if a given character represents a rank
+(define (rank? c) (and (char>=? c #\a) (char<=? c #\h)))
 
 ; converts ranks a-h into indices 0-7
 (define (char->rank c)
-  (when (or (char<? c #\a) (char>? c #\h)) (raise "out of bounds"))
+  (when (not (rank? c)) (raise "out of bounds"))
   (char-diff c #\a))
+
+; returns true if a given character represents a file
+(define (file? c) (and (char>=? c #\1) (char<=? c #\8)))
 
 ; converts files 1-8 into indices 0-7
 (define (char->file c)
-  (when (or (char<? c #\1) (char>? c #\8)) (raise "out of bounds"))
+  (when (not (file? c)) (raise "out of bounds"))
   (char-diff c #\1))
-
-; creates locations from string representation
-(define (new-location str)
-  (cons (char->rank (string-ref str 0))
-        (char->file (string-ref str 1))))
-
-; location members
-(define location-rank car)
-(define location-file cdr)
-
-; move : (color piece source destination)
-(define (new-move str)
-  '())
-
-; move members
-(define move-color first)
-(define move-piece second)
-(define move-source third)
-(define move-dest fourth)
 
 ; gives the letter representing a file
 (define (file-string file)
@@ -80,9 +67,30 @@
     7 "h")
     file))
 
-; defines the pieces on the back row
-(define back-row
-  '(R N B Q K B N R))
+; creates a new location from a string representation
+(define (new-location str)
+  (cons (char->rank (string-ref str 0))
+        (char->file (string-ref str 1))))
+
+; location members
+(define location-file car)
+(define location-rank cdr)
+
+; move : (color piece source destination)
+(define (new-move position color str)
+  (match (string->list str)
+    [(list p r f) null]))
+
+; TODO
+;(define (try-move position color piece location)
+;  (define color-pieces (position-player position color))
+;  (define pieces (filter (lambda (piece-location) (equal? piece (car piece-location)))))
+
+; move members
+(define move-color first)
+(define move-piece second)
+(define move-source third)
+(define move-dest fourth)
 
 ; used to generate terminal escape sequences
 (define (esc . codes)
@@ -98,6 +106,10 @@
 (define fg-black (esc 30))
 (define reset (esc 0))
 
+; defines the pieces on the back row
+(define back-row
+  '(R N B Q K B N R))
+
 ; create a new grid
 (define (new-grid)
   (append
@@ -109,7 +121,7 @@
 
 ; get a color-piece from a grid
 (define (grid-ref grid location)
-  (match location [(cons rank file)
+  (match location [(cons file rank)
     (list-ref (list-ref grid rank) file)]))
 
 ; print subroutines
@@ -126,14 +138,14 @@
 
 (define (print-grid grid)
   (display "  ")
-  (for ([j (in-range 8)])
-    (display (string-append " " (file-string j) " ")))
+  (for ([file (in-range 8)])
+    (display (string-append " " (file-string file) " ")))
   (displayln "")
-  (for ([i (in-range 8)])
-    (display (string-append (rank-string i) " "))
-    (for ([j (in-range 8)])
-      (define color-piece (grid-ref grid (cons i j)))
-      (print-square (if (equal? (modulo (+ i j) 2) 0) 'black 'white) color-piece))
+  (for ([rank (in-range 8)])
+    (display (string-append (rank-string rank) " "))
+    (for ([file (in-range 8)])
+      (define color-piece (grid-ref grid (cons file rank)))
+      (print-square (if (equal? (modulo (+ file rank) 2) 0) 'black 'white) color-piece))
     (displayln reset)))
 
 (define (color-piece-repr color-piece)
@@ -147,25 +159,25 @@
 
 (define (location-repr location)
   (match location
-    [(cons rank file) (string-append (file-string file) (rank-string rank))]))
+    [(cons file rank) (string-append (file-string file) (rank-string rank))]))
 
 ; grid->position conversion code
 
 (define (grid->position grid)
+  (define (grid-player-position grid player)
+    (filter (compose1 not null?)
+      (for*/list ([rank (in-range 8)] [file (in-range 8)])
+        (define player-piece (grid-ref grid (cons file rank)))
+        (match player-piece 
+          [(cons color piece)
+          (if (equal? color player)
+              (cons piece (cons file rank))
+              null)]
+          [_ null]))))
   (cons
     (grid-player-position grid 'white)
     (grid-player-position grid 'black)))
 
-(define (grid-player-position grid player)
-  (filter (compose1 not null?)
-    (for*/list ([rank (in-range 8)] [file (in-range 8)])
-      (define player-piece (grid-ref grid (cons rank file)))
-      (match player-piece 
-        [(cons color piece)
-         (if (equal? color player)
-             (cons piece (cons rank file))
-             null)]
-        [_ null]))))
 
 ; create a new position
 (define (new-position) (grid->position (new-grid)))
@@ -199,20 +211,20 @@
 ; adds two locations together like vectors
 (define (add-location a b)
   (cons
-    (+ (location-rank a) (location-rank b))
-    (+ (location-file a) (location-file b))))
+    (+ (location-file a) (location-file b))
+    (+ (location-rank a) (location-rank b))))
 
 ; checks that a location is in [0,8) x [0,8)
 (define (in-bounds location)
   (match location
-    [(cons rank file) (and
+    [(cons file rank) (and
       (positive? rank) (< rank 8)
       (positive? file) (< file 8))]))
 
 ; returns all offsets that can be created from transformations of the given offset
 (define (all-offsets offset)
   (define (all-transformations offset)
-    (match offset [(cons rank file)
+    (match offset [(cons file rank)
       (list
         (cons rank file)
         (cons (- rank) file)
@@ -269,18 +281,39 @@
       (list (add-location source '(0 . -1)))]
     [else (raise)]))
 
+; returns the appropriate function for calculating a piece's moves
+(define (piece-move-func piece)
+  (hash-ref (hash
+    'P pawn-moves
+    'N knight-moves
+    'R rook-moves
+    'B bishop-moves
+    'K king-moves
+    'Q queen-moves)
+  piece))
+
+; returns possible moves, given a source location
+(define (possible-moves position location)
+  (define color-piece (position-ref position location))
+  (when (null? color-piece) (raise "no piece there"))
+  (define move-func (piece-move-func (cdr color-piece)))
+  (move-func position location))
+
 (print-grid (new-grid))
 
-(map location-repr (rook-moves (new-position) '(3 . 3)))
-(map location-repr (pawn-moves (new-position) '(1 . 4)))
-(map location-repr (pawn-moves (new-position) '(6 . 4)))
+(map location-repr (rook-moves (new-position) (new-location "c3")))
+(map location-repr (pawn-moves (new-position) (new-location "e2")))
+(map location-repr (pawn-moves (new-position) (new-location "e7")))
+
+(define current-position (new-position))
 
 (define (repl)
   (let loop ()
     (display "> ")
     (define input (read-line))
     (when (eof-object? input) (exit))
-    (displayln (new-location input))
+    (define input-location (new-location input))
+    (displayln (map location-repr (possible-moves current-position input-location)))
     ; TODO given a square, show moves
     ; TODO given a move, make the move
     (loop)))
