@@ -81,11 +81,6 @@
   (match (string->list str)
     [(list p r f) null]))
 
-; TODO
-;(define (try-move position color piece location)
-;  (define color-pieces (position-player position color))
-;  (define pieces (filter (lambda (piece-location) (equal? piece (car piece-location)))))
-
 ; move members
 (define move-source car)
 (define move-dest cdr)
@@ -323,11 +318,14 @@
       partial-position)))
   (cons (first position-list) (second position-list)))
 
+; TODO valid-move?
+; TODO parse move from notation
+; TODO catch errors in repl
+
 ; debugging
 
-(define current-position (new-position))
-
 (define (repl)
+  (define current-position (new-position))
   (let loop ()
     (define (read-line-exit)
       (define line (read-line))
@@ -342,7 +340,7 @@
     
     (print-locations (possible-moves current-position source))
     
-    (display "dest   > ")
+    (display "dest > ")
     (define dest (new-location (read-line-exit)))
 
     (define move (cons source dest))
