@@ -8,7 +8,7 @@
 ;        ( row+ )
 ; position: ( ( piece-location+ ) . ( piece-location+ ) )
 ;           ( white-piece-locations . black-piece-locations )
-; move : (color piece source dest)
+; move : (source dest)
 
 ; gives the point value of each piece
 (define piece-values
@@ -87,10 +87,8 @@
 ;  (define pieces (filter (lambda (piece-location) (equal? piece (car piece-location)))))
 
 ; move members
-(define move-color first)
-(define move-piece second)
-(define move-source third)
-(define move-dest fourth)
+(define move-source car)
+(define move-dest cdr)
 
 ; used to generate terminal escape sequences
 (define (esc . codes)
@@ -148,6 +146,12 @@
       (print-square (if (equal? (modulo (+ file rank) 2) 0) 'black 'white) color-piece))
     (displayln reset)))
 
+(define (print-position position)
+  (print-grid (position->grid position)))
+
+(define (print-locations locations)
+  (displayln (map location-repr locations)))
+
 (define (color-piece-repr color-piece)
   (match color-piece
     [(cons color piece) (string-append (symbol->string color) " " (symbol->string piece))]
@@ -178,6 +182,10 @@
     (grid-player-position grid 'white)
     (grid-player-position grid 'black)))
 
+(define (position->grid position)
+  (for/list ([rank (in-range 8)])
+    (for/list ([file (in-range 8)])
+      (position-ref position (cons file rank)))))
 
 ; create a new position
 (define (new-position) (grid->position (new-grid)))
@@ -187,7 +195,7 @@
 (define position-black cdr)
 
 ; gets the position of a specified player
-(define (position-player position color)
+(define (position-color position color)
   (if (equal? color 'white) (position-white position) (position-black position)))
 
 ; get a color-piece from a position
@@ -299,18 +307,47 @@
   (define move-func (piece-move-func (cdr color-piece)))
   (move-func position location))
 
-(print-grid (new-grid))
+; makes a move and returns the new position
+; NOTE does not check if the move is valid
+(define (make-move position move)
+  (define source (move-source move))
+  (define dest (move-dest move))
+  (define color-piece (position-ref position source))
+  (define piece (cdr color-piece))
+  (define position-list (for/list ([color '(white black)])
+    (define partial-position (position-color position color))
+    (if (equal? color (car color-piece))
+      (list* (cons piece dest)
+        (remove (cons piece source)
+          partial-position))
+      partial-position)))
+  (cons (first position-list) (second position-list)))
+
+; debugging
 
 (define current-position (new-position))
 
 (define (repl)
   (let loop ()
-    (display "> ")
-    (define input (read-line))
-    (when (eof-object? input) (exit))
-    (define input-location (new-location input))
-    (displayln (map location-repr (possible-moves current-position input-location)))
-    ; TODO given a move, make the move
+    (define (read-line-exit)
+      (define line (read-line))
+      (when (eof-object? line) (exit))
+      line)
+
+    (print-position current-position)
+    
+    ; input a move
+    (display "source > ")
+    (define source (new-location (read-line-exit)))
+    
+    (print-locations (possible-moves current-position source))
+    
+    (display "dest   > ")
+    (define dest (new-location (read-line-exit)))
+
+    (define move (cons source dest))
+    (set! current-position (make-move current-position move))
+
     (loop)))
 
 (repl)
