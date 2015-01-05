@@ -321,6 +321,8 @@
 ; TODO valid-move?
 ; TODO parse move from notation
 ; TODO catch errors in repl
+; TODO rider-shadow (for pins/skewers)
+; TODO attackers/defenders
 
 ; debugging
 
