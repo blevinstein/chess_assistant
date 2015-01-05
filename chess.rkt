@@ -65,6 +65,10 @@
 (define fg-black (esc 30))
 (define reset (esc 0))
 
+; location members
+(define location-rank car)
+(define location-file cdr)
+
 ; create a new grid
 (define (new-grid)
   (append
@@ -130,18 +134,20 @@
       (match player-piece 
         [(cons color piece)
          (if (equal? color player)
-             (cons piece (cons file rank))
+             (cons piece (cons rank file))
              null)]
         [_ null]))))
 
 ; create a new position
 (define (new-position) (grid->position (new-grid)))
 
+; position members
 (define position-white car)
 (define position-black cdr)
 
+; gets the position of a specified player
 (define (position-player position player)
-  (if (equal? player 'white) (car position) (cdr position)))
+  (if (equal? player 'white) (position-white position) (position-black position)))
 
 ; get a player-piece from a position
 (define (position-ref position location)
@@ -164,8 +170,8 @@
 ; adds two locations together like vectors
 (define (add-location a b)
   (cons
-    (+ (car a) (car b))
-    (+ (cdr a) (cdr b))))
+    (+ (location-rank a) (location-rank b))
+    (+ (location-file a) (location-file b))))
 
 ; checks that a location is in [0,8) x [0,8)
 (define (in-bounds location)
@@ -220,8 +226,22 @@
   (append
     (leaper-moves '(1 . 0) position source)
     (leaper-moves '(1 . 1) position source)))
+(define (pawn-moves position source)
+  (define rank (location-rank source))
+  (define color (car (position-ref position source)))
+  (cond
+    [(and (equal? color 'white) (equal? rank 1))
+      (list (add-location source '(0 . 1)) (add-location source '(0 . 2)))]
+    [(and (equal? color 'black) (equal? rank 6))
+      (list (add-location source '(0 . -1)) (add-location source '(0 . -2)))]
+    [(equal? color 'white)
+      (list (add-location source '(0 . 1)))]
+    [(equal? color 'black)
+      (list (add-location source '(0 . -1)))]
+    [true (raise)]))
 
 (print-grid (new-grid))
 
 (rook-moves (new-position) '(3 . 3))
+(pawn-moves (new-position) '(1 . 4))
 
