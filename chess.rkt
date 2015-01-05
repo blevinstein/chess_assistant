@@ -301,10 +301,6 @@
 
 (print-grid (new-grid))
 
-(map location-repr (rook-moves (new-position) (new-location "c3")))
-(map location-repr (pawn-moves (new-position) (new-location "e2")))
-(map location-repr (pawn-moves (new-position) (new-location "e7")))
-
 (define current-position (new-position))
 
 (define (repl)
@@ -314,7 +310,6 @@
     (when (eof-object? input) (exit))
     (define input-location (new-location input))
     (displayln (map location-repr (possible-moves current-position input-location)))
-    ; TODO given a square, show moves
     ; TODO given a move, make the move
     (loop)))
 
