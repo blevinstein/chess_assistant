@@ -92,6 +92,12 @@
     (string-join (map number->string codes) ";")
     "m"))
 
+(define (other-player color)
+  (match color
+    ['black 'white]
+    ['white 'black]
+    [else raise "invalid argument"]))
+
 ; terminal escape sequences
 (define bg-white (esc 48 5 246))
 (define bg-black (esc 48 5 240))
@@ -209,8 +215,6 @@
     null
     (car (first piece-at-location))))
 
-; TODO position->grid
-
 ; adds two locations together like vectors
 (define (add-location a b)
   (cons
@@ -304,6 +308,7 @@
 
 ; makes a move and returns the new position
 ; NOTE does not check if the move is valid
+; TODO does not remove captured pieces
 (define (make-move position move)
   (define source (move-source move))
   (define dest (move-dest move))
@@ -318,16 +323,48 @@
       partial-position)))
   (cons (first position-list) (second position-list)))
 
-; TODO valid-move?
-; TODO parse move from notation
+; get all moves from a source in source-list to a dest in dest-list
+; NOTE does not handle castling
+(define (get-moves position source-list dest-list)
+  (filter
+    (curry valid-move position)
+    (for*/list ([source source-list] [dest dest-list]) (cons source dest))))
+
+; TODO special-case: check
+(define (valid-move position move)
+  (define source-color-piece (position-ref position (move-source move)))
+  (define dest-color-piece (position-ref position (move-dest move)))
+  (and
+    ; source contains a piece
+    (not (null? source-color-piece))
+    ; this move can be performed by the source piece
+    (member (move-dest move) (possible-moves position (move-source move)))
+    ; dest is empty or contains an enemy piece
+    (or
+      (null? dest-color-piece)
+      (and
+        (not (null? dest-color-piece))
+        (not (equal? (car source-color-piece) (car dest-color-piece)))))))
+
+; EXPERIMENTAL code below
+
+; TODO parse move from notation, move-repr
+; TODO store history of moves, allow replay list of moves
+;
+; TODO capturing
+; TODO en passant
+; TODO castling
+; TODO check, checkmate
+; TODO draws
+;
 ; TODO catch errors in repl
 ; TODO rider-shadow (for pins/skewers)
-; TODO attackers/defenders
-
-; debugging
+; TODO refactor position : ( ( color piece location )+ )
 
 (define (repl)
   (define current-position (new-position))
+  (define to-move 'white)
+
   (let loop ()
     (define (read-line-exit)
       (define line (read-line))
@@ -337,6 +374,7 @@
     (print-position current-position)
     
     ; input a move
+    (displayln (string-append "to move: " (symbol->string to-move)))
     (display "source > ")
     (define source (new-location (read-line-exit)))
     
@@ -346,7 +384,14 @@
     (define dest (new-location (read-line-exit)))
 
     (define move (cons source dest))
-    (set! current-position (make-move current-position move))
+    (define move-color (car (position-ref current-position source)))
+    (if (equal? move-color to-move)
+      (if (valid-move current-position move)
+        (list
+          (set! current-position (make-move current-position move))
+          (set! to-move (other-player to-move)))
+        (displayln "Invalid move!"))
+      (displayln "Wrong player!"))
 
     (loop)))
 
