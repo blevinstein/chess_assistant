@@ -247,6 +247,7 @@
   (append
     (leaper-moves '(1 . 0) position source)
     (leaper-moves '(1 . 1) position source)))
+; NOTE pawn-moves is fucked and needs to be rewritten
 (define (pawn-moves position source)
   (define rank (location-rank source))
   (define color (car (position-ref position source)))
@@ -279,12 +280,6 @@
   (define move-func (piece-move-func (cdr color-piece)))
   (move-func position location))
 
-; remove all elements of vs from lst
-(define (remove-each vs lst)
-  (match vs
-    [empty lst]
-    [(cons head tail) (remove-each tail (remove head lst))]))
-
 ; makes a move and returns the new position
 ; NOTE does not check if the move is valid
 (define (make-move position move)
@@ -299,7 +294,7 @@
   ; add piece from source to dest
   (define to-add (list (car color-piece) (cdr color-piece) dest))
   (list* to-add
-    (remove-each to-remove-list
+    (remove* to-remove-list
       position)))
 
 ; get all moves from a source in source-list to a dest in dest-list
@@ -309,7 +304,6 @@
     (curry valid-move position)
     (for*/list ([source source-list] [dest dest-list]) (cons source dest))))
 
-; TODO special-case: check
 (define (valid-move position move)
   (define source-color-piece (position-ref position (move-source move)))
   (define dest-color-piece (position-ref position (move-dest move)))
@@ -325,8 +319,33 @@
         (not (null? dest-color-piece))
         (not (equal? (car source-color-piece) (car dest-color-piece)))))))
 
+; return a list of enemy squares attacking a given square
+(define (attackers position target)
+  (define target-color (car (position-ref position target)))
+  (define enemy-locations
+    (map (lambda (cpl) (third cpl))
+      (filter (lambda (cpl) (equal? (first cpl) (other-player target-color)))
+        position)))
+  (map car (get-moves position enemy-locations (list target))))
+
+; return a list of friendly squares defending a given square
+(define (defenders position target)
+  (define target-color (car (position-ref position target)))
+  (define friendly-locations
+    (map (lambda (cpl) (third cpl))
+      (filter (lambda (cpl) (equal? (first cpl) target-color))
+        position)))
+  (map car (get-moves position friendly-locations (list target))))
+
+(define (threat-count position location)
+  (-
+    (length (defenders position location))
+    (length (attackers position location))))
+
 ; EXPERIMENTAL code below
 
+; TODO fix pawn moves
+;
 ; TODO add unit tests
 ;
 ; TODO move-repr, new-move
@@ -356,6 +375,13 @@
     (displayln (string-append "to move: " (symbol->string to-move)))
     (display "source > ")
     (define source (new-location (read-line-exit)))
+
+    (display "attackers ")
+    (print-locations (attackers current-position source))
+    (display "defenders ")
+    (print-locations (defenders current-position source))
+    (display "threat # ")
+    (displayln (threat-count current-position source))
     
     (print-locations (possible-moves current-position source))
     
