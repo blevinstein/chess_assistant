@@ -6,8 +6,7 @@
 ; piece-location : (piece . location)
 ; grid : ( ( color-piece+ )+ )
 ;        ( row+ )
-; position: ( ( piece-location+ ) . ( piece-location+ ) )
-;           ( white-piece-locations . black-piece-locations )
+; position : ( ( color piece location )+ )
 ; move : (source dest)
 
 ; gives the point value of each piece
@@ -76,10 +75,7 @@
 (define location-file car)
 (define location-rank cdr)
 
-; move : (color piece source destination)
-(define (new-move position color str)
-  (match (string->list str)
-    [(list p r f) null]))
+; TODO (define (new-move position color str)
 
 ; move members
 (define move-source car)
@@ -169,19 +165,13 @@
 ; grid->position conversion code
 
 (define (grid->position grid)
-  (define (grid-player-position grid player)
-    (filter (compose1 not null?)
-      (for*/list ([rank (in-range 8)] [file (in-range 8)])
-        (define player-piece (grid-ref grid (cons file rank)))
-        (match player-piece 
-          [(cons color piece)
-          (if (equal? color player)
-              (cons piece (cons file rank))
-              null)]
-          [_ null]))))
-  (cons
-    (grid-player-position grid 'white)
-    (grid-player-position grid 'black)))
+  (filter (compose1 not null?)
+    (for*/list ([rank (in-range 8)] [file (in-range 8)])
+      (define location (cons file rank))
+      (define player-piece (grid-ref grid location))
+      (match player-piece 
+        [(cons color piece) (list color piece location)]
+        [_ null]))))
 
 (define (position->grid position)
   (for/list ([rank (in-range 8)])
@@ -191,29 +181,14 @@
 ; create a new position
 (define (new-position) (grid->position (new-grid)))
 
-; position members
-(define position-white car)
-(define position-black cdr)
-
-; gets the position of a specified player
-(define (position-color position color)
-  (if (equal? color 'white) (position-white position) (position-black position)))
-
 ; get a color-piece from a position
 (define (position-ref position location)
-  (define black-at-location (position-player-ref (position-black position) location))
-  (define white-at-location (position-player-ref (position-white position) location))
-  (cond
-    [(not (null? black-at-location)) (cons 'black black-at-location)]
-    [(not (null? white-at-location)) (cons 'white white-at-location)]
-    [else null]))
-
-; get a piece from a player-position
-(define (position-player-ref position-player location)
-  (define piece-at-location (filter (λ (pl) (equal? (cdr pl) location)) position-player))
-  (if (empty? piece-at-location)
+  (define (at-location? cpl) (equal? (third cpl) location))
+  (define pieces-at-location (filter at-location? position))
+  (when (> (length pieces-at-location) 1) (raise "Invalid state!"))
+  (if (empty? pieces-at-location)
     null
-    (car (first piece-at-location))))
+    (match pieces-at-location [(list (list color piece _)) (cons color piece)])))
 
 ; adds two locations together like vectors
 (define (add-location a b)
@@ -306,6 +281,12 @@
   (define move-func (piece-move-func (cdr color-piece)))
   (move-func position location))
 
+; remove all elements of vs from lst
+(define (remove-each vs lst)
+  (match vs
+    [empty lst]
+    [(cons head tail) (remove-each tail (remove head lst))]))
+
 ; makes a move and returns the new position
 ; NOTE does not check if the move is valid
 ; TODO does not remove captured pieces
@@ -314,14 +295,15 @@
   (define dest (move-dest move))
   (define color-piece (position-ref position source))
   (define piece (cdr color-piece))
-  (define position-list (for/list ([color '(white black)])
-    (define partial-position (position-color position color))
-    (if (equal? color (car color-piece))
-      (list* (cons piece dest)
-        (remove (cons piece source)
-          partial-position))
-      partial-position)))
-  (cons (first position-list) (second position-list)))
+  (define (at-location? loc cpl) (equal? (third cpl) loc))
+  ; remove pieces from source and dest
+  (define to-remove-list (append (filter (curry at-location? source) position)
+                                 (filter (curry at-location? dest) position)))
+  ; add piece from source to dest
+  (define to-add (list (car color-piece) (cdr color-piece) dest))
+  (list* to-add
+    (remove-each to-remove-list
+      position)))
 
 ; get all moves from a source in source-list to a dest in dest-list
 ; NOTE does not handle castling
@@ -348,6 +330,8 @@
 
 ; EXPERIMENTAL code below
 
+; TODO add unit tests
+;
 ; TODO parse move from notation, move-repr
 ; TODO store history of moves, allow replay list of moves
 ;
@@ -359,7 +343,6 @@
 ;
 ; TODO catch errors in repl
 ; TODO rider-shadow (for pins/skewers)
-; TODO refactor position : ( ( color piece location )+ )
 
 (define (repl)
   (define current-position (new-position))
