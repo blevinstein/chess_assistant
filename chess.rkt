@@ -75,8 +75,6 @@
 (define location-file car)
 (define location-rank cdr)
 
-; TODO (define (new-move position color str)
-
 ; move members
 (define move-source car)
 (define move-dest cdr)
@@ -289,7 +287,6 @@
 
 ; makes a move and returns the new position
 ; NOTE does not check if the move is valid
-; TODO does not remove captured pieces
 (define (make-move position move)
   (define source (move-source move))
   (define dest (move-dest move))
@@ -332,10 +329,9 @@
 
 ; TODO add unit tests
 ;
-; TODO parse move from notation, move-repr
-; TODO store history of moves, allow replay list of moves
+; TODO move-repr, new-move
+; TODO store history of moves, allow replay/undo
 ;
-; TODO capturing
 ; TODO en passant
 ; TODO castling
 ; TODO check, checkmate
