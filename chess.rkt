@@ -189,10 +189,11 @@
     (match pieces-at-location [(list (list color piece _)) (cons color piece)])))
 
 ; adds two locations together like vectors
-(define (add-location a b)
-  (cons
-    (+ (location-file a) (location-file b))
-    (+ (location-rank a) (location-rank b))))
+(define (add-location locations ...)
+  (for/fold ([sum '( 0 . 0 )]) ([loc locations])
+    (cons
+      (+ (location-file loc) (location-file sum))
+      (+ (location-rank loc) (location-rank sum)))))
 
 ; checks that a location is in [0,8) x [0,8)
 (define (in-bounds location)
