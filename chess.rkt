@@ -75,6 +75,62 @@
 (define location-file car)
 (define location-rank cdr)
 
+; creates a new move from a string representation
+(define (new-move position color str)
+  (define (infer-move piece dest
+      #:hint [hint? empty]
+      #:promote [promote empty]
+      #:castle [castle empty])
+    ; find all pieces of the right color and type
+    (define candidate-locations
+      (map (lambda (cpl) (third cpl))
+        (filter (lambda (cpl) (and (equal? color (first cpl)) (equal? piece (second cpl))))
+          position)))
+    ; find all locations which are the source of a valid move to dest
+    (define valid-locations (filter (lambda (location) (valid-move position (cons location dest)))
+      candidate-locations))
+    (cond
+      [(equal? 1 (length candidate-locations)) (first candidate-locations)]
+      [(equal? 0 (length candidate-locations)) (raise "no valid moves found")]
+      [else (raise "not implemented yet")]))
+  (match (string->list str)
+    [(list file rank)
+      (infer-move 'P (cons file rank))]
+    [(list piece file rank) #:when (is-piece? piece)
+      (infer-move piece (cons file rank))]
+    [(list hint file rank) #:when (is-hint? hint)
+      (infer-move 'P (cons file rank) #:hint (hint-pred hint))]
+    [(list piece hint file rank) #:when (and (is-piece? piece) (is-hint? hint))
+      (infer-move piece (cons file rank) #:hint (hint-pred hint))]
+    [(list file rank promote) #:when (is-piece? promote)
+      (infer-move 'P (cons file rank) #:promote (char->piece promote))]
+    [(list hint file rank promote) #:when (and (is-hint? hint) (is-piece? promote))
+      (infer-move 'P (cons file rank)
+        #:hint (hint-pred hint) #:promote (char->piece promote))]
+    [(list piece hfile hrank file rank) #:when (and (file? hfile) (rank? hrank) (is-piece? piece))
+      (infer-move piece (cons file rank) #:hint (curry equal? (cons hfile hrank)))]
+    [_ (raise "unrecognized move")]))
+
+; creates a predicate which acts on locations, given a hint character (1-8 or a-h)
+(define (hint-pred hint-char)
+  (cond
+    [(file? hint-char)
+      (lambda (location) (equal? (location-file location) (char->file hint-char)))]
+    [(rank? hint-char)
+      (lambda (location) (equal? (location-rank location) (char->rank hint-char)))]
+    [else (raise "not a valid hint")]))
+
+(define (is-hint? hint-char)
+  (or (file? hint-char) (rank? hint-char)))
+
+; returns true if a chracter represents a valid piece
+(define (is-piece? piece-char)
+  (member piece-char (string->list "KQNBRP")))
+
+(define (char->piece c)
+  (when (not (is-piece? c)) raise "not a valid piece")
+  (string->symbol (list c)))
+
 ; move members
 (define move-source car)
 (define move-dest cdr)
@@ -283,6 +339,7 @@
 
 ; makes a move and returns the new position
 ; NOTE does not check if the move is valid
+; NOTE does not support en passant
 (define (make-move position move)
   (define source (move-source move))
   (define dest (move-dest move))
@@ -350,10 +407,12 @@
 ; TODO add unit tests
 ;
 ; TODO move-repr, new-move
+;
+; TODO castling
+; TODO add REPL commands
 ; TODO store history of moves, allow replay/undo
 ;
 ; TODO en passant
-; TODO castling
 ; TODO check, checkmate
 ; TODO draws
 ;
