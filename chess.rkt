@@ -38,20 +38,20 @@
   (number->string (+ rank 1)))
 
 ; returns true if a given character represents a rank
-(define (rank? c) (and (char>=? c #\a) (char<=? c #\h)))
+(define (rank? c) (and (char>=? c #\1) (char<=? c #\8)))
 
 ; converts ranks a-h into indices 0-7
 (define (char->rank c)
-  (when (not (rank? c)) (raise "out of bounds"))
-  (char-diff c #\a))
+  (when (not (rank? c)) (raise "rank out of bounds"))
+  (char-diff c #\1))
 
 ; returns true if a given character represents a file
-(define (file? c) (and (char>=? c #\1) (char<=? c #\8)))
+(define (file? c) (and (char>=? c #\a) (char<=? c #\h)))
 
 ; converts files 1-8 into indices 0-7
 (define (char->file c)
-  (when (not (file? c)) (raise "out of bounds"))
-  (char-diff c #\1))
+  (when (not (file? c)) (raise "file out of bounds"))
+  (char-diff c #\a))
 
 ; gives the letter representing a file
 (define (file-string file)
@@ -68,8 +68,8 @@
 
 ; creates a new location from a string representation
 (define (new-location str)
-  (cons (char->rank (string-ref str 0))
-        (char->file (string-ref str 1))))
+  (cons (char->file (string-ref str 0))
+        (char->rank (string-ref str 1))))
 
 ; location members
 (define location-file car)
@@ -78,7 +78,7 @@
 ; creates a new move from a string representation
 (define (new-move position color str)
   (define (infer-move piece dest
-      #:hint [hint? empty]
+      #:hint [hint empty]
       #:promote [promote empty]
       #:castle [castle empty])
     ; find all pieces of the right color and type
@@ -87,28 +87,34 @@
         (filter (lambda (cpl) (and (equal? color (first cpl)) (equal? piece (second cpl))))
           position)))
     ; find all locations which are the source of a valid move to dest
-    (define valid-locations (filter (lambda (location) (valid-move position (cons location dest)))
+    (define valid-locations (filter
+      (lambda (location)
+        (and (valid-move position (cons location dest))
+             (or (null? hint) ((hint-pred hint) location))))
       candidate-locations))
-    (cond
-      [(equal? 1 (length candidate-locations)) (first candidate-locations)]
-      [(equal? 0 (length candidate-locations)) (raise "no valid moves found")]
-      [else (raise "not implemented yet")]))
+    (cons (cond
+      [(equal? 1 (length valid-locations)) (first valid-locations)]
+      [(equal? 0 (length valid-locations)) (raise "no valid moves found")]
+      [else (raise "not implemented yet")]) dest))
+  (define (parse-loc file rank) (cons (char->file file) (char->rank rank)))
   (match (string->list str)
     [(list file rank)
-      (infer-move 'P (cons file rank))]
+      (infer-move 'P (parse-loc file rank))]
     [(list piece file rank) #:when (is-piece? piece)
-      (infer-move piece (cons file rank))]
+      (infer-move (char->piece piece) (parse-loc file rank))]
     [(list hint file rank) #:when (is-hint? hint)
-      (infer-move 'P (cons file rank) #:hint (hint-pred hint))]
+      (infer-move 'P (parse-loc file rank) #:hint hint)]
     [(list piece hint file rank) #:when (and (is-piece? piece) (is-hint? hint))
-      (infer-move piece (cons file rank) #:hint (hint-pred hint))]
+      (infer-move (char->piece piece) (parse-loc file rank) #:hint hint)]
     [(list file rank promote) #:when (is-piece? promote)
-      (infer-move 'P (cons file rank) #:promote (char->piece promote))]
+      (infer-move 'P (parse-loc file rank) #:promote (char->piece promote))]
     [(list hint file rank promote) #:when (and (is-hint? hint) (is-piece? promote))
-      (infer-move 'P (cons file rank)
-        #:hint (hint-pred hint) #:promote (char->piece promote))]
-    [(list piece hfile hrank file rank) #:when (and (file? hfile) (rank? hrank) (is-piece? piece))
-      (infer-move piece (cons file rank) #:hint (curry equal? (cons hfile hrank)))]
+      (infer-move 'P (parse-loc file rank)
+        #:hint hint #:promote (char->piece promote))]
+    [(list piece hfile hrank file rank)
+        #:when (and (file? hfile) (rank? hrank) (is-piece? piece))
+      (infer-move (char->piece piece) (parse-loc file rank)
+          #:hint (curry equal? (parse-loc hfile hrank)))]
     [_ (raise "unrecognized move")]))
 
 ; creates a predicate which acts on locations, given a hint character (1-8 or a-h)
@@ -129,7 +135,7 @@
 
 (define (char->piece c)
   (when (not (is-piece? c)) raise "not a valid piece")
-  (string->symbol (list c)))
+  (string->symbol (list->string (list c))))
 
 ; move members
 (define move-source car)
@@ -245,7 +251,7 @@
     (match pieces-at-location [(list (list color piece _)) (cons color piece)])))
 
 ; adds two locations together like vectors
-(define (add-location locations ...)
+(define (add-location . locations)
   (for/fold ([sum '( 0 . 0 )]) ([loc locations])
     (cons
       (+ (location-file loc) (location-file sum))
@@ -275,17 +281,19 @@
 
 ; returns the moves a leaper can make
 (define (leaper-moves offset position source)
-  (filter in-bounds
-    (map (curry add-location source) (all-offsets offset))))
+  (map (lambda (dest) (cons source dest))
+    (filter in-bounds
+      (map (curry add-location source) (all-offsets offset)))))
 
 ; returns all moves a rider can make along a single path
 (define (rider-path offset position source)
   (define dest (add-location source offset))
+  (define move (cons source dest))
   (define piece-at-dest (position-ref position dest))
   (cond
     [(not (in-bounds dest)) null]
-    [(null? piece-at-dest) (cons dest (rider-path offset position dest))]
-    [else (list dest)]))
+    [(null? piece-at-dest) (cons move (rider-path offset position dest))]
+    [else (list move)]))
 
 (define (rider-moves offset position source)
   (append*
@@ -304,20 +312,27 @@
   (append
     (leaper-moves '(1 . 0) position source)
     (leaper-moves '(1 . 1) position source)))
-; NOTE pawn-moves is fucked and needs to be rewritten
 (define (pawn-moves position source)
-  (define rank (location-rank source))
+  (define (open? space) (null? (position-ref position space)))
   (define color (car (position-ref position source)))
-  (cond
-    [(and (equal? color 'white) (equal? rank 1))
-      (list (add-location source '(0 . 1)) (add-location source '(0 . 2)))]
-    [(and (equal? color 'black) (equal? rank 6))
-      (list (add-location source '(0 . -1)) (add-location source '(0 . -2)))]
-    [(equal? color 'white)
-      (list (add-location source '(0 . 1)))]
-    [(equal? color 'black)
-      (list (add-location source '(0 . -1)))]
-    [else (raise)]))
+  (define (can-attack? space)
+    (define color-piece (position-ref position space))
+    (and (not (null? color-piece)) (not (equal? (car color-piece) color))))
+  (define rank (location-rank source))
+  (define direction (if (equal? color 'white) '(0 . 1) '(0 . -1)))
+  (define unmoved (or (and (equal? color 'white) (equal? rank 1))
+                      (and (equal? color 'black) (equal? rank 6))))
+  (define (move-to space) (cons source space))
+  (define plus-one (add-location source direction))
+  (define plus-two (add-location source direction direction))
+  (define left (add-location source direction '(-1 . 0)))
+  (define right (add-location source direction '(1 . 0)))
+  (filter (compose1 not null?)
+    (list
+      (if (open? plus-one) (move-to plus-one) empty)
+      (if (and unmoved (open? plus-one) (open? plus-two)) (move-to plus-two) empty)
+      (if (can-attack? left) (move-to left) empty)
+      (if (can-attack? right) (move-to right) empty))))
 
 ; returns the appropriate function for calculating a piece's moves
 (define (piece-move-func piece)
@@ -369,7 +384,7 @@
     ; source contains a piece
     (not (null? source-color-piece))
     ; this move can be performed by the source piece
-    (member (move-dest move) (possible-moves position (move-source move)))
+    (member move (possible-moves position (move-source move)))
     ; dest is empty or contains an enemy piece
     (or
       (null? dest-color-piece)
@@ -402,11 +417,9 @@
 
 ; EXPERIMENTAL code below
 
-; TODO fix pawn moves
-;
 ; TODO add unit tests
 ;
-; TODO move-repr, new-move
+; TODO move-repr
 ;
 ; TODO castling
 ; TODO add REPL commands
@@ -431,24 +444,20 @@
 
     (print-position current-position)
     
-    ; input a move
     (displayln (string-append "to move: " (symbol->string to-move)))
-    (display "source > ")
-    (define source (new-location (read-line-exit)))
 
-    (display "attackers ")
-    (print-locations (attackers current-position source))
-    (display "defenders ")
-    (print-locations (defenders current-position source))
-    (display "threat # ")
-    (displayln (threat-count current-position source))
-    
-    (print-locations (possible-moves current-position source))
-    
-    (display "dest > ")
-    (define dest (new-location (read-line-exit)))
+    ;(display "attackers ")
+    ;(print-locations (attackers current-position source))
+    ;(display "defenders ")
+    ;(print-locations (defenders current-position source))
+    ;(display "threat # ")
+    ;(displayln (threat-count current-position source))
 
-    (define move (cons source dest))
+    (display "move > ")
+    (define move (new-move current-position to-move (read-line-exit)))
+    (define source (move-source move))
+    (define dest (move-dest move))
+
     (define move-color (car (position-ref current-position source)))
     (if (equal? move-color to-move)
       (if (valid-move current-position move)
