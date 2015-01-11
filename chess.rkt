@@ -90,7 +90,7 @@
     (define valid-locations (filter
       (lambda (location)
         (and (valid-move position (cons location dest))
-             (or (null? hint) ((hint-pred hint) location))))
+             (or (null? hint) (hint location))))
       candidate-locations))
     (cons (cond
       [(equal? 1 (length valid-locations)) (first valid-locations)]
@@ -102,15 +102,15 @@
       (infer-move 'P (parse-loc file rank))]
     [(list piece file rank) #:when (is-piece? piece)
       (infer-move (char->piece piece) (parse-loc file rank))]
-    [(list hint file rank) #:when (is-hint? hint)
-      (infer-move 'P (parse-loc file rank) #:hint hint)]
+    [(list hint file rank) #:when (is-hint? (hint-pred hint))
+      (infer-move 'P (parse-loc file rank) #:hint (hint-pred hint))]
     [(list piece hint file rank) #:when (and (is-piece? piece) (is-hint? hint))
-      (infer-move (char->piece piece) (parse-loc file rank) #:hint hint)]
+      (infer-move (char->piece piece) (parse-loc file rank) #:hint (hint-pred hint))]
     [(list file rank promote) #:when (is-piece? promote)
       (infer-move 'P (parse-loc file rank) #:promote (char->piece promote))]
     [(list hint file rank promote) #:when (and (is-hint? hint) (is-piece? promote))
       (infer-move 'P (parse-loc file rank)
-        #:hint hint #:promote (char->piece promote))]
+        #:hint (hint-pred hint) #:promote (char->piece promote))]
     [(list piece hfile hrank file rank)
         #:when (and (file? hfile) (rank? hrank) (is-piece? piece))
       (infer-move (char->piece piece) (parse-loc file rank)
