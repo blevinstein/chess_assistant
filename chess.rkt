@@ -209,6 +209,9 @@
 (define (print-locations locations)
   (displayln (map location-repr locations)))
 
+(define (print-moves moves)
+  (displayln (map move-repr moves)))
+
 (define (color-piece-repr color-piece)
   (match color-piece
     [(cons color piece) (string-append (symbol->string color) " " (symbol->string piece))]
@@ -221,6 +224,11 @@
 (define (location-repr location)
   (match location
     [(cons file rank) (string-append (file-string file) (rank-string rank))]))
+
+(define (move-repr move)
+  (string-append (location-repr (move-source move))
+                 "->"
+                 (location-repr (move-dest move))))
 
 ; grid->position conversion code
 
@@ -432,6 +440,18 @@
 ; TODO catch errors in repl
 ; TODO rider-shadow (for pins/skewers)
 
+(define (info-cmd position input)
+  (define square (new-location input))
+  (print-moves (possible-moves position square)))
+
+(define (command char)
+  (hash-ref (hash
+    #\I info-cmd)
+    char))
+
+(define (command? char)
+  (not (null? (command char))))
+
 (define errormsg (string-append (esc 31) "[ERROR]" (esc 0)))
 
 (define (repl)
@@ -455,20 +475,25 @@
     ;(display "threat # ")
     ;(displayln (threat-count current-position source))
 
-    (with-handlers ([string? (lambda (exn) (displayln errormsg))])
-      (display "move > ")
-      (define move (new-move current-position to-move (read-line-exit)))
-      (define source (move-source move))
-      (define dest (move-dest move))
+    (display "move > ")
+    (define input (read-line-exit))
+    (define first-char (string-ref input 0))
+    (if (command? first-char)
+      ((command first-char) current-position (substring input 1))
+      (with-handlers ([string? (lambda (exn) (displayln errormsg))])
+        (display "move > ")
+        (define move (new-move current-position to-move (read-line-exit)))
+        (define source (move-source move))
+        (define dest (move-dest move))
 
-      (define move-color (car (position-ref current-position source)))
-      (if (equal? move-color to-move)
-        (if (valid-move current-position move)
-          (list
-            (set! current-position (make-move current-position move))
-            (set! to-move (other-player to-move)))
-          (displayln "Invalid move!"))
-        (displayln "Wrong player!")))
+        (define move-color (car (position-ref current-position source)))
+        (if (equal? move-color to-move)
+          (if (valid-move current-position move)
+            (list
+              (set! current-position (make-move current-position move))
+              (set! to-move (other-player to-move)))
+            (displayln "Invalid move!"))
+          (displayln "Wrong player!"))))
 
     (loop)))
 
