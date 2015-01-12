@@ -1,23 +1,6 @@
 #lang racket
 
-; informal types
-; location : (file . rank)
-; color-piece : (color . piece)
-; piece-location : (piece . location)
-; grid : ( ( color-piece+ )+ )
-;        ( row+ )
-; position : ( ( color piece location )+ )
-; move : (source dest)
-
-; gives the point value of each piece
-(define piece-values
-  (hash
-    'P 1
-    'N 3
-    'B 3
-    'R 5
-    'Q 9
-    'K 0))
+(require "typed-chess.rkt")
 
 ; gives the unicode character of each piece
 (define (piece-code piece)
@@ -450,7 +433,7 @@
     char))
 
 (define (command? char)
-  (not (null? (command char))))
+  (member char (string->list "I")))
 
 (define errormsg (string-append (esc 31) "[ERROR]" (esc 0)))
 
@@ -481,8 +464,7 @@
     (if (command? first-char)
       ((command first-char) current-position (substring input 1))
       (with-handlers ([string? (lambda (exn) (displayln errormsg))])
-        (display "move > ")
-        (define move (new-move current-position to-move (read-line-exit)))
+        (define move (new-move current-position to-move input))
         (define source (move-source move))
         (define dest (move-dest move))
 
