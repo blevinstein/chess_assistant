@@ -1,6 +1,9 @@
 #lang racket
 
 (require "typed-chess.rkt")
+(provide (all-from-out "typed-chess.rkt"))
+
+(provide new-location location-file location-rank)
 
 ; creates a new location from a string representation
 (define (new-location str)
@@ -12,7 +15,24 @@
 (define location-rank cdr)
 
 ; creates a new move from a string representation
+(provide new-move)
 (define (new-move position color str)
+  ; creates a predicate which acts on locations, given a hint character (1-8 or a-h)
+  (define (hint-pred hint-char)
+    (cond
+      [(file? hint-char)
+        (lambda (location) (equal? (location-file location) (char->file hint-char)))]
+      [(rank? hint-char)
+        (lambda (location) (equal? (location-rank location) (char->rank hint-char)))]
+      [else (raise "not a valid hint")]))
+  (define (is-hint? hint-char)
+    (or (file? hint-char) (rank? hint-char)))
+  ; returns true if a chracter represents a valid piece
+  (define (is-piece? piece-char)
+    (member piece-char (string->list "KQNBRP")))
+  (define (char->piece c)
+    (when (not (is-piece? c)) raise "not a valid piece")
+    (string->symbol (list->string (list c))))
   (define (infer-move piece dest
       #:hint [hint empty]
       #:promote [promote empty]
@@ -53,49 +73,27 @@
           #:hint (curry equal? (parse-loc hfile hrank)))]
     [_ (raise "unrecognized move")]))
 
-; creates a predicate which acts on locations, given a hint character (1-8 or a-h)
-(define (hint-pred hint-char)
-  (cond
-    [(file? hint-char)
-      (lambda (location) (equal? (location-file location) (char->file hint-char)))]
-    [(rank? hint-char)
-      (lambda (location) (equal? (location-rank location) (char->rank hint-char)))]
-    [else (raise "not a valid hint")]))
-
-(define (is-hint? hint-char)
-  (or (file? hint-char) (rank? hint-char)))
-
-; returns true if a chracter represents a valid piece
-(define (is-piece? piece-char)
-  (member piece-char (string->list "KQNBRP")))
-
-(define (char->piece c)
-  (when (not (is-piece? c)) raise "not a valid piece")
-  (string->symbol (list->string (list c))))
-
 ; move members
+; TODO refactor
+(provide move-source move-dest)
 (define move-source car)
 (define move-dest cdr)
 
 ; used to generate terminal escape sequences
+; TODO refactor out
+(provide esc)
 (define (esc . codes)
   (string-append
     "\e["
     (string-join (map number->string codes) ";")
     "m"))
 
+(provide other-player)
 (define (other-player color)
   (match color
     ['black 'white]
     ['white 'black]
     [else raise "invalid argument"]))
-
-; terminal escape sequences
-(define bg-white (esc 48 5 246))
-(define bg-black (esc 48 5 240))
-(define fg-white (esc 97))
-(define fg-black (esc 30))
-(define reset (esc 0))
 
 ; defines the pieces on the back row
 (define back-row
@@ -111,56 +109,28 @@
     (list (map (λ (piece) (cons 'black piece)) back-row))))
 
 ; get a color-piece from a grid
+(provide grid-ref)
 (define (grid-ref grid location)
   (match location [(cons file rank)
     (list-ref (list-ref grid rank) file)]))
 
-; print subroutines
-
-(define (print-square background color-piece)
-  (display (if (equal? background 'black) bg-black bg-white))
-  (display " ")
-  (match color-piece
-    [(cons color piece)
-      (display (if (equal? color 'black) fg-black fg-white))
-      (display (piece-code piece))]
-    [null (display " ")])
-  (display " "))
-
-(define (print-grid grid)
-  (display "  ")
-  (for ([file (in-range 8)])
-    (display (string-append " " (file-string file) " ")))
-  (displayln "")
-  (for ([rank (in-range 8)])
-    (display (string-append (rank-string rank) " "))
-    (for ([file (in-range 8)])
-      (define color-piece (grid-ref grid (cons file rank)))
-      (print-square (if (equal? (modulo (+ file rank) 2) 0) 'black 'white) color-piece))
-    (displayln reset)))
-
-(define (print-position position)
-  (print-grid (position->grid position)))
-
-(define (print-locations locations)
-  (displayln (map location-repr locations)))
-
-(define (print-moves moves)
-  (displayln (map move-repr moves)))
-
+(provide color-piece-repr)
 (define (color-piece-repr color-piece)
   (match color-piece
     [(cons color piece) (string-append (symbol->string color) " " (symbol->string piece))]
     [_ "\u2205"]))
 
+(provide piece-location-repr)
 (define (piece-location-repr piece-location)
   (match piece-location
     [(cons piece location) (string-append (piece-code piece) " @ " (location-repr location))]))
 
+(provide location-repr)
 (define (location-repr location)
   (match location
     [(cons file rank) (string-append (file-string file) (rank-string rank))]))
 
+(provide move-repr)
 (define (move-repr move)
   (string-append (location-repr (move-source move))
                  "->"
@@ -168,6 +138,7 @@
 
 ; grid->position conversion code
 
+(provide grid->position)
 (define (grid->position grid)
   (filter (compose1 not null?)
     (for*/list ([rank (in-range 8)] [file (in-range 8)])
@@ -177,15 +148,18 @@
         [(cons color piece) (list color piece location)]
         [_ null]))))
 
+(provide position->grid)
 (define (position->grid position)
   (for/list ([rank (in-range 8)])
     (for/list ([file (in-range 8)])
       (position-ref position (cons file rank)))))
 
 ; create a new position
+(provide new-position)
 (define (new-position) (grid->position (new-grid)))
 
 ; get a color-piece from a position
+(provide position-ref)
 (define (position-ref position location)
   (define (at-location? cpl) (equal? (third cpl) location))
   (define pieces-at-location (filter at-location? position))
@@ -195,6 +169,8 @@
     (match pieces-at-location [(list (list color piece _)) (cons color piece)])))
 
 ; adds two locations together like vectors
+; TODO refactor
+(provide add-location)
 (define (add-location . locations)
   (for/fold ([sum '( 0 . 0 )]) ([loc locations])
     (cons
@@ -290,6 +266,7 @@
   piece))
 
 ; returns possible moves, given a source location
+(provide possible-moves)
 (define (possible-moves position location)
   (define color-piece (position-ref position location))
   (when (null? color-piece) (raise "no piece there"))
@@ -299,6 +276,7 @@
 ; makes a move and returns the new position
 ; NOTE does not check if the move is valid
 ; NOTE does not support en passant
+(provide make-move)
 (define (make-move position move)
   (define source (move-source move))
   (define dest (move-dest move))
@@ -321,6 +299,7 @@
     (curry valid-move position)
     (for*/list ([source source-list] [dest dest-list]) (cons source dest))))
 
+(provide valid-move)
 (define (valid-move position move)
   (define source-color-piece (position-ref position (move-source move)))
   (define dest-color-piece (position-ref position (move-dest move)))
@@ -358,79 +337,4 @@
   (-
     (length (defenders position location))
     (length (attackers position location))))
-
-; EXPERIMENTAL code below
-
-; TODO add unit tests
-;
-; TODO move-repr
-;
-; TODO castling
-; TODO add REPL commands
-; TODO store history of moves, allow replay/undo
-;
-; TODO en passant
-; TODO check, checkmate
-; TODO draws
-;
-; TODO catch errors in repl
-; TODO rider-shadow (for pins/skewers)
-
-(define (info-cmd position input)
-  (define square (new-location input))
-  (print-moves (possible-moves position square)))
-
-(define (command char)
-  (hash-ref (hash
-    #\I info-cmd)
-    char))
-
-(define (command? char)
-  (member char (string->list "I")))
-
-(define errormsg (string-append (esc 31) "[ERROR]" (esc 0)))
-
-(define (repl)
-  (define current-position (new-position))
-  (define to-move 'white)
-
-  (let loop ()
-    (define (read-line-exit)
-      (define line (read-line))
-      (when (eof-object? line) (exit))
-      line)
-
-    (print-position current-position)
-    
-    (displayln (string-append "to move: " (symbol->string to-move)))
-
-    ;(display "attackers ")
-    ;(print-locations (attackers current-position source))
-    ;(display "defenders ")
-    ;(print-locations (defenders current-position source))
-    ;(display "threat # ")
-    ;(displayln (threat-count current-position source))
-
-    (display "move > ")
-    (define input (read-line-exit))
-    (define first-char (string-ref input 0))
-    (if (command? first-char)
-      ((command first-char) current-position (substring input 1))
-      (with-handlers ([string? (lambda (exn) (displayln errormsg))])
-        (define move (new-move current-position to-move input))
-        (define source (move-source move))
-        (define dest (move-dest move))
-
-        (define move-color (car (position-ref current-position source)))
-        (if (equal? move-color to-move)
-          (if (valid-move current-position move)
-            (list
-              (set! current-position (make-move current-position move))
-              (set! to-move (other-player to-move)))
-            (displayln "Invalid move!"))
-          (displayln "Wrong player!"))))
-
-    (loop)))
-
-(repl)
 

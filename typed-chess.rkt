@@ -1,7 +1,5 @@
 #lang typed/racket
 
-(displayln "Typed chess loaded")
-
 (struct: location ([file : Integer] [rank : Integer]))
 
 (define-type ColorPiece (Pair Symbol Symbol))
