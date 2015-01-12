@@ -2,53 +2,6 @@
 
 (require "typed-chess.rkt")
 
-; gives the unicode character of each piece
-(define (piece-code piece)
-  (hash-ref (hash
-    'K "\u265a"
-    'Q "\u265b"
-    'R "\u265c"
-    'B "\u265d"
-    'N "\u265e"
-    'P "\u265f")
-    piece))
-
-; returns a - b using character codes
-(define (char-diff a b) (- (char->integer a) (char->integer b)))
-
-; gives the number representing a rank
-(define (rank-string rank)
-  (number->string (+ rank 1)))
-
-; returns true if a given character represents a rank
-(define (rank? c) (and (char>=? c #\1) (char<=? c #\8)))
-
-; converts ranks a-h into indices 0-7
-(define (char->rank c)
-  (when (not (rank? c)) (raise "rank out of bounds"))
-  (char-diff c #\1))
-
-; returns true if a given character represents a file
-(define (file? c) (and (char>=? c #\a) (char<=? c #\h)))
-
-; converts files 1-8 into indices 0-7
-(define (char->file c)
-  (when (not (file? c)) (raise "file out of bounds"))
-  (char-diff c #\a))
-
-; gives the letter representing a file
-(define (file-string file)
-  (hash-ref (hash
-    0 "a"
-    1 "b"
-    2 "c"
-    3 "d"
-    4 "e"
-    5 "f"
-    6 "g"
-    7 "h")
-    file))
-
 ; creates a new location from a string representation
 (define (new-location str)
   (cons (char->file (string-ref str 0))
