@@ -1,6 +1,7 @@
 #lang typed/racket
 
-(struct: location ([file : Integer] [rank : Integer]))
+(provide (struct-out location))
+(struct: location ([file : Integer] [rank : Integer]) #:transparent)
 
 (define-type ColorPiece (Pair Symbol Symbol))
 
@@ -13,6 +14,9 @@
 (define-type Position (Listof ColorPieceLocation))
 
 (define-type Move (Pair location location))
+
+; TODO refactor print code
+; http://docs.racket-lang.org/reference/Printer_Extension.html#%28def._%28%28lib._racket%2Fprivate%2Fbase..rkt%29._gen~3acustom-write%29%29
 
 ; gives the point value of each piece
 (provide piece-value)
@@ -88,3 +92,9 @@
     (6 . "g")
     (7 . "h"))
     file))
+
+(provide new-location)
+(: new-location (-> String location))
+(define (new-location str)
+  (location (char->file (string-ref str 0))
+            (char->rank (string-ref str 1))))

@@ -5,15 +5,6 @@
 
 (provide new-location location-file location-rank)
 
-; creates a new location from a string representation
-(define (new-location str)
-  (cons (char->file (string-ref str 0))
-        (char->rank (string-ref str 1))))
-
-; location members
-(define location-file car)
-(define location-rank cdr)
-
 ; creates a new move from a string representation
 (provide new-move)
 (define (new-move position color str)
@@ -21,9 +12,9 @@
   (define (hint-pred hint-char)
     (cond
       [(file? hint-char)
-        (lambda (location) (equal? (location-file location) (char->file hint-char)))]
+        (lambda (loc) (equal? (location-file loc) (char->file hint-char)))]
       [(rank? hint-char)
-        (lambda (location) (equal? (location-rank location) (char->rank hint-char)))]
+        (lambda (loc) (equal? (location-rank loc) (char->rank hint-char)))]
       [else (raise "not a valid hint")]))
   (define (is-hint? hint-char)
     (or (file? hint-char) (rank? hint-char)))
@@ -44,15 +35,15 @@
           position)))
     ; find all locations which are the source of a valid move to dest
     (define valid-locations (filter
-      (lambda (location)
-        (and (valid-move position (cons location dest))
-             (or (null? hint) (hint location))))
+      (lambda (loc)
+        (and (valid-move position (cons loc dest))
+             (or (null? hint) (hint loc))))
       candidate-locations))
     (cons (cond
       [(equal? 1 (length valid-locations)) (first valid-locations)]
       [(equal? 0 (length valid-locations)) (raise "no valid moves found")]
       [else (raise "not implemented yet")]) dest))
-  (define (parse-loc file rank) (cons (char->file file) (char->rank rank)))
+  (define (parse-loc file rank) (location (char->file file) (char->rank rank)))
   (match (string->list str)
     [(list file rank)
       (infer-move 'P (parse-loc file rank))]
@@ -110,8 +101,8 @@
 
 ; get a color-piece from a grid
 (provide grid-ref)
-(define (grid-ref grid location)
-  (match location [(cons file rank)
+(define (grid-ref grid loc)
+  (match loc [(location file rank)
     (list-ref (list-ref grid rank) file)]))
 
 (provide color-piece-repr)
@@ -123,12 +114,12 @@
 (provide piece-location-repr)
 (define (piece-location-repr piece-location)
   (match piece-location
-    [(cons piece location) (string-append (piece-code piece) " @ " (location-repr location))]))
+    [(cons piece loc) (string-append (piece-code piece) " @ " (location-repr loc))]))
 
 (provide location-repr)
-(define (location-repr location)
-  (match location
-    [(cons file rank) (string-append (file-string file) (rank-string rank))]))
+(define (location-repr loc)
+  (match loc
+    [(location file rank) (string-append (file-string file) (rank-string rank))]))
 
 (provide move-repr)
 (define (move-repr move)
@@ -142,17 +133,17 @@
 (define (grid->position grid)
   (filter (compose1 not null?)
     (for*/list ([rank (in-range 8)] [file (in-range 8)])
-      (define location (cons file rank))
-      (define player-piece (grid-ref grid location))
+      (define loc (location file rank))
+      (define player-piece (grid-ref grid loc))
       (match player-piece 
-        [(cons color piece) (list color piece location)]
+        [(cons color piece) (list color piece loc)]
         [_ null]))))
 
 (provide position->grid)
 (define (position->grid position)
   (for/list ([rank (in-range 8)])
     (for/list ([file (in-range 8)])
-      (position-ref position (cons file rank)))))
+      (position-ref position (location file rank)))))
 
 ; create a new position
 (provide new-position)
@@ -160,8 +151,8 @@
 
 ; get a color-piece from a position
 (provide position-ref)
-(define (position-ref position location)
-  (define (at-location? cpl) (equal? (third cpl) location))
+(define (position-ref position loc)
+  (define (at-location? cpl) (equal? (third cpl) loc))
   (define pieces-at-location (filter at-location? position))
   (when (> (length pieces-at-location) 1) (raise "Invalid state!"))
   (if (empty? pieces-at-location)
@@ -172,31 +163,31 @@
 ; TODO refactor
 (provide add-location)
 (define (add-location . locations)
-  (for/fold ([sum '( 0 . 0 )]) ([loc locations])
-    (cons
+  (for/fold ([sum (location 0  0 )]) ([loc locations])
+    (location
       (+ (location-file loc) (location-file sum))
       (+ (location-rank loc) (location-rank sum)))))
 
 ; checks that a location is in [0,8) x [0,8)
-(define (in-bounds location)
-  (match location
-    [(cons file rank) (and
+(define (in-bounds loc)
+  (match loc
+    [(location file rank) (and
       (>= rank 0) (< rank 8)
       (>= file 0) (< file 8))]))
 
 ; returns all offsets that can be created from transformations of the given offset
 (define (all-offsets offset)
   (define (all-transformations offset)
-    (match offset [(cons file rank)
+    (match offset [(location file rank)
       (list
-        (cons rank file)
-        (cons (- rank) file)
-        (cons rank (- file))
-        (cons (- rank) (- file))
-        (cons file rank)
-        (cons (- file) rank)
-        (cons file (- rank))
-        (cons (- file) (- rank)))]))
+        (location rank file)
+        (location (- rank) file)
+        (location rank (- file))
+        (location (- rank) (- file))
+        (location file rank)
+        (location (- file) rank)
+        (location file (- rank))
+        (location (- file) (- rank)))]))
   (remove-duplicates (all-transformations offset)))
 
 ; returns the moves a leaper can make
@@ -221,17 +212,17 @@
       (all-offsets offset))))
 
 ; defines piece moves in terms of leapers and riders
-(define knight-moves (curry leaper-moves '(1 . 2)))
-(define rook-moves (curry rider-moves '(1 . 0)))
-(define bishop-moves (curry rider-moves '(1 . 1)))
+(define knight-moves (curry leaper-moves (location 1 2)))
+(define rook-moves (curry rider-moves (location 1 0)))
+(define bishop-moves (curry rider-moves (location 1 1)))
 (define (queen-moves position source)
   (append
-    (rider-moves '(1 . 0) position source)
-    (rider-moves '(1 . 1) position source)))
+    (rider-moves (location 1 0) position source)
+    (rider-moves (location 1 1) position source)))
 (define (king-moves position source)
   (append
-    (leaper-moves '(1 . 0) position source)
-    (leaper-moves '(1 . 1) position source)))
+    (leaper-moves (location 1 0) position source)
+    (leaper-moves (location 1 1) position source)))
 (define (pawn-moves position source)
   (define (open? space) (null? (position-ref position space)))
   (define color (car (position-ref position source)))
@@ -239,14 +230,14 @@
     (define color-piece (position-ref position space))
     (and (not (null? color-piece)) (not (equal? (car color-piece) color))))
   (define rank (location-rank source))
-  (define direction (if (equal? color 'white) '(0 . 1) '(0 . -1)))
+  (define direction (if (equal? color 'white) (location 0 1) (location 0 -1)))
   (define unmoved (or (and (equal? color 'white) (equal? rank 1))
                       (and (equal? color 'black) (equal? rank 6))))
   (define (move-to space) (cons source space))
   (define plus-one (add-location source direction))
   (define plus-two (add-location source direction direction))
-  (define left (add-location source direction '(-1 . 0)))
-  (define right (add-location source direction '(1 . 0)))
+  (define left (add-location source direction (location -1 0)))
+  (define right (add-location source direction (location 1 0)))
   (filter (compose1 not null?)
     (list
       (if (open? plus-one) (move-to plus-one) empty)
@@ -267,11 +258,11 @@
 
 ; returns possible moves, given a source location
 (provide possible-moves)
-(define (possible-moves position location)
-  (define color-piece (position-ref position location))
+(define (possible-moves position loc)
+  (define color-piece (position-ref position loc))
   (when (null? color-piece) (raise "no piece there"))
   (define move-func (piece-move-func (cdr color-piece)))
-  (move-func position location))
+  (move-func position loc))
 
 ; makes a move and returns the new position
 ; NOTE does not check if the move is valid
@@ -333,8 +324,8 @@
         position)))
   (map car (get-moves position friendly-locations (list target))))
 
-(define (threat-count position location)
+(define (threat-count position loc)
   (-
-    (length (defenders position location))
-    (length (attackers position location))))
+    (length (defenders position loc))
+    (length (attackers position loc))))
 

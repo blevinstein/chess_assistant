@@ -24,7 +24,7 @@
   (for ([rank (in-range 8)])
     (display (string-append (rank-string rank) " "))
     (for ([file (in-range 8)])
-      (define color-piece (grid-ref grid (cons file rank)))
+      (define color-piece (grid-ref grid (location file rank)))
       (print-square (if (equal? (modulo (+ file rank) 2) 0) 'black 'white) color-piece))
     (displayln reset)))
 
