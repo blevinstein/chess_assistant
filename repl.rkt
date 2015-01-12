@@ -2,6 +2,14 @@
 
 (require "chess.rkt")
 
+; used to generate terminal escape sequences
+(provide esc)
+(define (esc . codes)
+  (string-append
+    "\e["
+    (string-join (map number->string codes) ";")
+    "m"))
+
 ; print subroutines
 
 (provide print-square)
