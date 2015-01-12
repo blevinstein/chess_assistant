@@ -3,13 +3,13 @@
 (provide (struct-out location))
 (struct: location ([file : Integer] [rank : Integer]) #:transparent)
 
-(define-type ColorPiece (Pair Symbol Symbol))
+(struct: color-piece ([color : Symbol] [piece : Symbol]) #:transparent)
 
 (define-type PieceLocation (Pair Symbol location))
 
 (define-type ColorPieceLocation (List Symbol Symbol location))
 
-(define-type Grid (Listof (Listof ColorPiece)))
+(define-type Grid (Listof (Listof color-piece)))
 
 (define-type Position (Listof ColorPieceLocation))
 
@@ -173,34 +173,34 @@
 (: valid-move (-> Position Move Boolean))
 (define (valid-move position move)
   ; TODO fix
-  (define source-color-piece (position-ref position (move-source move)))
-  (define dest-color-piece (position-ref position (move-dest move)))
+  (define source (position-ref position (move-source move)))
+  (define dest (position-ref position (move-dest move)))
   (cond
-    [(and (color-piece? source-color-piece) (color-piece? dest-color-piece))
+    [(and (color-piece? source) (color-piece? dest))
       (and
         ; source contains a piece
-        (not (null? source-color-piece))
+        (not (null? source))
         ; this move can be performed by the source piece
         (member move (possible-moves position (move-source move)))
         ; dest is empty or contains an enemy piece
         (or
-          (null? dest-color-piece)
+          (null? dest)
           (and
-            (not (null? dest-color-piece))
-            (not (equal? (car source-color-piece) (car dest-color-piece))))))]
-    [else false]))
+            (not (null? dest))
+            (not (equal? (color-piece-color source) (color-piece-color dest))))))]
+    [else #f]))
 
 ; get a color-piece from a position
 (provide position-ref)
-(: position-ref (-> Position location (Option ColorPiece)))
+(: position-ref (-> Position location (Option color-piece)))
 (define (position-ref position loc)
   (: at-location? (-> ColorPieceLocation Boolean))
   (define (at-location? cpl) (equal? (third cpl) loc))
   (define pieces-at-location (filter at-location? position))
   (when (> (length pieces-at-location) 1) (raise "Invalid state!"))
   (if (empty? pieces-at-location)
-    null
-    (match pieces-at-location [(list (list color piece _)) (cons color piece)])))
+    #f
+    (match pieces-at-location [(list (list color piece _)) (color-piece color piece)])))
 
 ; move members
 (provide move-source move-dest)
@@ -214,21 +214,21 @@
 (: possible-moves (-> Position location (Listof Move)))
 (define (possible-moves position loc)
   (define color-piece (position-ref position loc))
-  (when (null? color-piece) (raise "no piece there"))
-  (define move-func (piece-move-func (cdr color-piece)))
-  (move-func position loc))
+  (cond
+    [(color-piece? color-piece)
+      ((piece-move-func (color-piece-piece color-piece)) position loc)]
+    [else (raise "no piece there")]))
 
 ; returns the appropriate function for calculating a piece's moves
 (: piece-move-func (-> Symbol (-> Position location (Listof Move))))
 (define (piece-move-func piece)
-  (hash-ref (hash
-    'P pawn-moves
-    'N knight-moves
-    'R rook-moves
-    'B bishop-moves
-    'K king-moves
-    'Q queen-moves)
-  piece))
+  (match piece
+    ['P pawn-moves]
+    ['N knight-moves]
+    ['R rook-moves]
+    ['B bishop-moves]
+    ['K king-moves]
+    ['Q queen-moves]))
 
 ; returns the moves a leaper can make
 (: leaper-moves (-> location Position location (Listof Move)))
@@ -284,9 +284,9 @@
                       (and (equal? color 'black) (equal? rank 6))))
   (define (move-to space) (cons source space))
   (define plus-one (add-location source direction))
-  (define plus-two (add-location source direction direction))
-  (define left (add-location source direction (location -1 0)))
-  (define right (add-location source direction (location 1 0)))
+  (define plus-two (add-location-list source direction direction))
+  (define left (add-location-list source direction (location -1 0)))
+  (define right (add-location-list source direction (location 1 0)))
   (filter (compose1 not null?)
     (list
       (if (open? plus-one) (move-to plus-one) empty)
@@ -301,15 +301,19 @@
       (>= rank 0) (< rank 8)
       (>= file 0) (< file 8))]))
 
+(provide add-location-list)
+(: add-location-list (-> (Listof location) location))
+(define (add-location-list . location-list)
+  (for/fold ([sum (location 0 0)]) ([loc location-list])
+    (add-location loc sum)))
+
 ; adds two locations together like vectors
-; TODO refactor
 (provide add-location)
-(: add-location (-> (Listof location) location))
-(define (add-location . locations)
-  (for/fold ([sum (location 0  0 )]) ([loc locations])
-    (location
-      (+ (location-file loc) (location-file sum))
-      (+ (location-rank loc) (location-rank sum)))))
+(: add-location (-> location location location))
+(define (add-location a b)
+  (location
+    (+ (location-file a) (location-file b))
+    (+ (location-rank a) (location-rank b))))
 
 ; create a new position
 (provide new-position)
@@ -366,7 +370,7 @@
 (: position->grid (-> Position Grid))
 (define (position->grid position)
   (for/list ([rank (in-range 8)])
-    (define: row : (Listof ColorPiece)
+    (define: row : (Listof color-piece)
       (for/list ([file (in-range 8)])
         (position-ref position (location file rank))))
     row))
@@ -447,7 +451,7 @@
 
 ; get a color-piece from a grid
 (provide grid-ref)
-(: grid-ref (-> Grid location ColorPiece))
+(: grid-ref (-> Grid location color-piece))
 (define (grid-ref grid loc)
   (match loc [(location file rank)
     (list-ref (list-ref grid rank) file)]))
@@ -461,7 +465,7 @@
     [else raise 'invalid-argument]))
 
 (provide color-piece-repr)
-(: color-piece-repr (-> ColorPiece String))
+(: color-piece-repr (-> color-piece String))
 (define (color-piece-repr color-piece)
   (match color-piece
     [(cons color piece) (string-append (symbol->string color) " " (symbol->string piece))]
