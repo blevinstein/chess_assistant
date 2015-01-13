@@ -7,13 +7,14 @@
 
 (define-type PieceLocation (Pair Symbol location))
 
-(define-type ColorPieceLocation (List Symbol Symbol location))
+(struct: color-piece-location ([color : Symbol] [piece : Symbol] [loc : location]))
 
-(define-type Grid (Listof (Listof color-piece)))
+(define-type Grid (Listof (Listof (Option color-piece))))
 
-(define-type Position (Listof ColorPieceLocation))
+(define-type Position (Listof color-piece-location))
 
-(define-type Move (Pair location location))
+(provide (struct-out move))
+(struct: move ([source : location] [dest : location]) #:transparent)
 
 ; TODO refactor print code
 ; http://docs.racket-lang.org/reference/Printer_Extension.html#%28def._%28%28lib._racket%2Fprivate%2Fbase..rkt%29._gen~3acustom-write%29%29
@@ -101,7 +102,7 @@
 
 ; creates a new move from a string representation
 (provide new-move)
-(: new-move (-> Position Symbol String Move))
+(: new-move (-> Position Symbol String move))
 (define (new-move position color str)
   ; creates a predicate which acts on locations, given a hint character (1-8 or a-h)
   (: hint-pred (-> Char (-> location Boolean)))
@@ -126,23 +127,25 @@
   (: infer-move (-> Symbol location
                     [#:hint (-> location Boolean)]
                     [#:promote Symbol]
-                    [#:castle Symbol] Move))
+                    [#:castle Symbol] move))
   (define (infer-move piece dest
       #:hint [hint empty]
       #:promote [promote empty]
       #:castle [castle empty])
     ; find all pieces of the right color and type
     (define candidate-locations
-      (map (lambda: ([cpl : ColorPieceLocation]) (third cpl))
-        (filter (lambda: ([cpl : ColorPieceLocation]) (and (equal? color (first cpl)) (equal? piece (second cpl))))
+      (map (lambda: ([cpl : color-piece-location]) (color-piece-location-loc cpl))
+        (filter (lambda: ([cpl : color-piece-location])
+            (and (equal? color (color-piece-location-color cpl))
+                 (equal? piece (color-piece-location-piece cpl))))
           position)))
     ; find all locations which are the source of a valid move to dest
     (define valid-locations (filter
       (lambda: ([loc : location])
-        (and (valid-move position (cons loc dest))
+        (and (valid-move position (move loc dest))
              (or (null? hint) (hint loc))))
       candidate-locations))
-    (cons (cond
+    (move (cond
       [(equal? 1 (length valid-locations)) (first valid-locations)]
       [(equal? 0 (length valid-locations)) (raise "no valid moves found")]
       [else (raise "not implemented yet")]) dest))
@@ -167,21 +170,21 @@
         #:when (and (file? hfile) (rank? hrank) (is-piece? piece))
       (infer-move (char->piece piece) (parse-loc file rank)
           #:hint (curry equal? (parse-loc hfile hrank)))]
-    [_ (raise "unrecognized move")]))
+    [_ (raise 'unrecognized-move)]))
 
 (provide valid-move)
-(: valid-move (-> Position Move Boolean))
-(define (valid-move position move)
+(: valid-move (-> Position move Boolean))
+(define (valid-move position mv)
   ; TODO fix
-  (define source (position-ref position (move-source move)))
-  (define dest (position-ref position (move-dest move)))
+  (define source (position-ref position (move-source mv)))
+  (define dest (position-ref position (move-dest mv)))
   (cond
     [(and (color-piece? source) (color-piece? dest))
       (and
         ; source contains a piece
         (not (null? source))
         ; this move can be performed by the source piece
-        (member move (possible-moves position (move-source move)))
+        (member move (possible-moves position (move-source mv)))
         ; dest is empty or contains an enemy piece
         (or
           (null? dest)
@@ -194,24 +197,26 @@
 (provide position-ref)
 (: position-ref (-> Position location (Option color-piece)))
 (define (position-ref position loc)
-  (: at-location? (-> ColorPieceLocation Boolean))
-  (define (at-location? cpl) (equal? (third cpl) loc))
+  (: at-location? (-> color-piece-location Boolean))
+  (define (at-location? cpl) (equal? (color-piece-location-loc cpl) loc))
   (define pieces-at-location (filter at-location? position))
   (when (> (length pieces-at-location) 1) (raise "Invalid state!"))
   (if (empty? pieces-at-location)
     #f
     (match pieces-at-location [(list (list color piece _)) (color-piece color piece)])))
 
-; move members
-(provide move-source move-dest)
-(: move-source (-> Move location))
-(define move-source car)
-(: move-dest (-> Move location))
-(define move-dest cdr)
+; like position-ref, but raises an exception if the location is empty
+(provide position-ref!)
+(: position-ref! (-> Position location color-piece))
+(define (position-ref! position loc)
+  (define optional-color-piece (position-ref position loc))
+  (cond
+    [(color-piece? optional-color-piece) optional-color-piece]
+    [else (raise 'not-a-color-piece)]))
 
 ; returns possible moves, given a source location
 (provide possible-moves)
-(: possible-moves (-> Position location (Listof Move)))
+(: possible-moves (-> Position location (Listof move)))
 (define (possible-moves position loc)
   (define color-piece (position-ref position loc))
   (cond
@@ -220,7 +225,7 @@
     [else (raise "no piece there")]))
 
 ; returns the appropriate function for calculating a piece's moves
-(: piece-move-func (-> Symbol (-> Position location (Listof Move))))
+(: piece-move-func (-> Symbol (-> Position location (Listof move))))
 (define (piece-move-func piece)
   (match piece
     ['P pawn-moves]
@@ -231,68 +236,72 @@
     ['Q queen-moves]))
 
 ; returns the moves a leaper can make
-(: leaper-moves (-> location Position location (Listof Move)))
+(: leaper-moves (-> location Position location (Listof move)))
 (define (leaper-moves offset position source)
-  (map (lambda (dest) (cons source dest))
+  (map (lambda: ([dest : location]) (move source dest))
     (filter in-bounds
       (map (curry add-location source) (all-offsets offset)))))
 
 ; returns all moves a rider can make along a single path
-(: rider-path (-> location Position location location (Listof Move)))
+(: rider-path (-> location Position location location (Listof move)))
 (define (rider-path offset position original source)
   (define dest (add-location source offset))
-  (define move (cons original dest))
+  (define mv (move original dest))
   (define piece-at-dest (position-ref position dest))
   (cond
     [(not (in-bounds dest)) null]
-    [(null? piece-at-dest) (cons move (rider-path offset position original dest))]
-    [else (list move)]))
+    [(null? piece-at-dest) (cons mv (rider-path offset position original dest))]
+    [else (list mv)]))
 
-(: rider-moves (-> location Position location (Listof Move)))
+(: rider-moves (-> location Position location (Listof move)))
 (define (rider-moves offset position source)
   (append*
-    (map (lambda (direction) (rider-path direction position source source))
+    (map (lambda: ([direction : location]) (rider-path direction position source source))
       (all-offsets offset))))
 
 ; defines piece moves in terms of leapers and riders
-(: knight-moves (-> Position location (Listof Move)))
+(: knight-moves (-> Position location (Listof move)))
 (define knight-moves (curry leaper-moves (location 1 2)))
-(: rook-moves (-> Position location (Listof Move)))
+(: rook-moves (-> Position location (Listof move)))
 (define rook-moves (curry rider-moves (location 1 0)))
-(: bishop-moves (-> Position location (Listof Move)))
+(: bishop-moves (-> Position location (Listof move)))
 (define bishop-moves (curry rider-moves (location 1 1)))
-(: queen-moves (-> Position location (Listof Move)))
+(: queen-moves (-> Position location (Listof move)))
 (define (queen-moves position source)
   (append
     (rider-moves (location 1 0) position source)
     (rider-moves (location 1 1) position source)))
-(: king-moves (-> Position location (Listof Move)))
+(: king-moves (-> Position location (Listof move)))
 (define (king-moves position source)
   (append
     (leaper-moves (location 1 0) position source)
     (leaper-moves (location 1 1) position source)))
-(: pawn-moves (-> Position location (Listof Move)))
+(: pawn-moves (-> Position location (Listof move)))
 (define (pawn-moves position source)
+  (: open? (-> location Boolean))
   (define (open? space) (null? (position-ref position space)))
-  (define color (car (position-ref position source)))
+  (define color (color-piece-color (position-ref! position source)))
+  (: can-attack? (-> location Boolean))
   (define (can-attack? space)
-    (define color-piece (position-ref position space))
-    (and (not (null? color-piece)) (not (equal? (car color-piece) color))))
+    (define color-piece (position-ref! position space))
+    (and (not (null? color-piece)) (not (equal? (color-piece-color color-piece) color))))
   (define rank (location-rank source))
   (define direction (if (equal? color 'white) (location 0 1) (location 0 -1)))
   (define unmoved (or (and (equal? color 'white) (equal? rank 1))
                       (and (equal? color 'black) (equal? rank 6))))
-  (define (move-to space) (cons source space))
+  (: move-to (-> location move))
+  (define (move-to space) (move source space))
   (define plus-one (add-location source direction))
   (define plus-two (add-location-list source direction direction))
   (define left (add-location-list source direction (location -1 0)))
   (define right (add-location-list source direction (location 1 0)))
-  (filter (compose1 not null?)
-    (list
-      (if (open? plus-one) (move-to plus-one) empty)
-      (if (and unmoved (open? plus-one) (open? plus-two)) (move-to plus-two) empty)
-      (if (can-attack? left) (move-to left) empty)
-      (if (can-attack? right) (move-to right) empty))))
+  (filter move?
+    (ann (list
+      (if (open? plus-one) (move-to plus-one) #f)
+      (if (and unmoved (open? plus-one) (open? plus-two)) (move-to plus-two) #f)
+      (if (and (not (open? left)) (can-attack? left)) (move-to left) #f)
+      (if (and (not (open? right)) (can-attack? right)) (move-to right) #f)
+      ) (Listof (Option move)))))
 
 ; checks that a location is in [0,8) x [0,8)
 (define (in-bounds loc)
@@ -301,8 +310,9 @@
       (>= rank 0) (< rank 8)
       (>= file 0) (< file 8))]))
 
+; TODO combine with add-location
 (provide add-location-list)
-(: add-location-list (-> (Listof location) location))
+(: add-location-list (-> location * location))
 (define (add-location-list . location-list)
   (for/fold ([sum (location 0 0)]) ([loc location-list])
     (add-location loc sum)))
@@ -338,7 +348,7 @@
 
 (: all-locations (Listof location))
 (define all-locations
-  (flatten
+  (append*
     (ann (for/list ([rank (in-range 8)])
       (ann (for/list ([file (in-range 8)])
         (location file rank)
@@ -349,84 +359,79 @@
 (: grid->position (-> Grid Position))
 (define (grid->position grid)
   (define not-null (compose1 not null?))
-  (define (custom-ref grid loc)
-    (match (grid-ref grid loc)
-      [(cons color piece) (list color piece loc)]
-      [_ null]))
-  (define filter-not-null (curry filter not-null))
-  (define (piece-at loc)
-    (grid-ref grid loc))
-  (ann (filter-not-null
+  (ann (filter color-piece-location?
     (ann (for/list ([loc all-locations])
       (define player-piece (grid-ref grid loc))
       (ann (match player-piece 
         [(cons color piece) (list color piece loc)]
-        [_ null]
-      ) (Option ColorPieceLocation))
-    ) (Listof (Option ColorPieceLocation)))
+        [_ #f]
+      ) (Option color-piece-location))
+    ) (Listof (Option color-piece-location)))
   ) Position))
 
 (provide position->grid)
 (: position->grid (-> Position Grid))
 (define (position->grid position)
   (for/list ([rank (in-range 8)])
-    (define: row : (Listof color-piece)
-      (for/list ([file (in-range 8)])
-        (position-ref position (location file rank))))
-    row))
+    (ann (for/list ([file (in-range 8)])
+      (position-ref position (location file rank))
+      ) (Listof (Option color-piece)))))
 
 ; makes a move and returns the new position
 ; NOTE does not check if the move is valid
 ; NOTE does not support en passant
 (provide make-move)
-(: make-move (-> Position location Position))
-(define (make-move position move)
-  (define source (move-source move))
-  (define dest (move-dest move))
-  (define color-piece (position-ref position source))
-  (define piece (cdr color-piece))
-  (define (at-location? loc cpl) (equal? (third cpl) loc))
+(: make-move (-> Position move Position))
+(define (make-move position mv)
+  (define source (move-source mv))
+  (define dest (move-dest mv))
+  (define color-piece (position-ref! position source))
+  (define piece (color-piece-piece color-piece))
+  (: at-location? (-> location color-piece-location Boolean))
+  (define (at-location? loc cpl) (equal? (color-piece-location-loc cpl) loc))
   ; remove pieces from source and dest
   (define to-remove-list (append (filter (curry at-location? source) position)
                                  (filter (curry at-location? dest) position)))
   ; add piece from source to dest
-  (define to-add (list (car color-piece) (cdr color-piece) dest))
+  (: to-add color-piece-location)
+  (define to-add
+    (color-piece-location (color-piece-color color-piece) (color-piece-piece color-piece) dest))
   (list* to-add
     (remove* to-remove-list
       position)))
 
 ; get all moves from a source in source-list to a dest in dest-list
 ; NOTE does not handle castling
-(: get-moves (-> Position (Listof location) (Listof location) (Listof Move)))
+(: get-moves (-> Position (Listof location) (Listof location) (Listof move)))
 (define (get-moves position source-list dest-list)
   (filter
     (curry valid-move position)
-    (flatten
+    (append*
       (ann (for/list ([source source-list])
         (ann (for/list ([dest dest-list])
-          (cons source dest)
-        ) (Listof Move))
-      ) (Listof (Listof Move))))))
+          (move source dest)
+        ) (Listof move))
+      ) (Listof (Listof move))))))
 
 ; return a list of enemy squares attacking a given square
 (: attackers (-> Position location (Listof location)))
 (define (attackers position target)
-  (define target-color (car (position-ref position target)))
+  (define target-color (color-piece-color (position-ref! position target)))
   (define enemy-locations
-    (map (lambda (cpl) (third cpl))
-      (filter (lambda (cpl) (equal? (first cpl) (other-player target-color)))
+    (map (lambda: ([cpl : color-piece-location]) (color-piece-location-loc cpl))
+      (filter (lambda: ([cpl : color-piece-location]) (equal? (color-piece-location-color cpl) (other-player target-color)))
         position)))
-  (map car (get-moves position enemy-locations (list target))))
+  (map move-source (get-moves position enemy-locations (list target))))
 
 ; return a list of friendly squares defending a given square
 (: defenders (-> Position location (Listof location)))
 (define (defenders position target)
-  (define target-color (car (position-ref position target)))
+  (define target-color (color-piece-color (position-ref! position target)))
   (define friendly-locations
-    (map (lambda (cpl) (third cpl))
-      (filter (lambda (cpl) (equal? (first cpl) target-color))
+    (map (lambda: ([cpl : color-piece-location]) (color-piece-location-loc cpl))
+      (filter (lambda: ([cpl : color-piece-location]) (equal? (color-piece-location-color cpl) target-color))
         position)))
-  (map car (get-moves position friendly-locations (list target))))
+  (map move-source (get-moves position friendly-locations (list target))))
 
 (: threat-count (-> Position location Integer))
 (define (threat-count position loc)
@@ -435,23 +440,24 @@
     (length (attackers position loc))))
 
 ; defines the pieces on the back row
-(: back-row (-> (Listof Symbol)))
+(: back-row (Listof Symbol))
 (define back-row
   '(R N B Q K B N R))
 
 ; create a new grid
+(provide new-grid)
 (: new-grid (-> Grid))
 (define (new-grid)
   (append
-    (list (map (λ (piece) (cons 'white piece)) back-row)))
-    (list (build-list 8 (λ (i) (cons 'white 'P))))
-    (build-list 4 (λ (i) (build-list 8 (λ (i) null))))
-    (list (build-list 8 (λ (i) (cons 'black 'P))))
-    (list (map (λ (piece) (cons 'black piece)) back-row)))
+    (list (map (lambda: ([piece : Symbol]) (color-piece 'white piece)) back-row))
+    (list (build-list 8 (lambda: ([i : Integer]) (color-piece 'white 'P))))
+    (build-list 4 (lambda: ([i : Integer]) (build-list 8 (lambda: ([i : Integer]) #f))))
+    (list (build-list 8 (lambda: ([i : Integer]) (color-piece 'black 'P))))
+    (list (map (lambda: ([piece : Symbol]) (color-piece 'black piece)) back-row))))
 
 ; get a color-piece from a grid
 (provide grid-ref)
-(: grid-ref (-> Grid location color-piece))
+(: grid-ref (-> Grid location (Option color-piece)))
 (define (grid-ref grid loc)
   (match loc [(location file rank)
     (list-ref (list-ref grid rank) file)]))
@@ -484,8 +490,8 @@
     [(location file rank) (string-append (file-string file) (rank-string rank))]))
 
 (provide move-repr)
-(: move-repr (-> Move String))
-(define (move-repr move)
-  (string-append (location-repr (move-source move))
+(: move-repr (-> move String))
+(define (move-repr mv)
+  (string-append (location-repr (move-source mv))
                  "->"
-                 (location-repr (move-dest move))))
+                 (location-repr (move-dest mv))))
