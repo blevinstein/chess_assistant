@@ -82,8 +82,6 @@
 (define (command? char)
   (member char (string->list "I")))
 
-(define errormsg (string-append (esc 31) "[ERROR]" (esc 0)))
-
 (define (repl)
   (define current-position (new-position))
   (define to-move 'white)
@@ -108,9 +106,10 @@
     (display "move > ")
     (define input (read-line-exit))
     (define first-char (string-ref input 0))
+    (define (errormsg exn) (string-append (esc 31) exn (esc 0)))
     (if (command? first-char)
       ((command first-char) current-position (substring input 1))
-      (with-handlers ([string? (lambda (exn) (displayln errormsg))])
+      (with-handlers ([string? (lambda (exn) (displayln (errormsg exn)))])
         (define mv (new-move current-position to-move input))
         (define source (move-source mv))
         (define dest (move-dest mv))
