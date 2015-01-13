@@ -27,7 +27,7 @@
     (test-case "new-move"
       (check-equal?
         (new-move (new-position) 'white "e4")
-        (location (new-location "e2") (new-location "e4"))))
+        (move (new-location "e2") (new-location "e4"))))
 
     (test-case "char-diff"
       (check-equal? 0 (char-diff #\a #\a))
@@ -40,10 +40,17 @@
       (check-equal? (length all-locations) 64))
 
     (test-case "valid-move"
-      (define (parse-move a b) (move (new-move (new-position) 'white a)
-                                     (new-move (new-position) 'white b)))
+      (define (parse-move a b) (move (new-location a)
+                                      (new-location b)))
       (check-true (valid-move (new-position) (parse-move "c2" "c3")) "c3")
       (check-true (valid-move (new-position) (parse-move "b1" "c3")) "Nc3"))
+
+    (test-case "pawn-moves"
+      (define (parse-move a b) (move (new-location a)
+                                      (new-location b)))
+      (check-equal? (pawn-moves (new-position) (new-location "c2"))
+        (list (parse-move "c2" "c3") (parse-move "c2" "c4"))
+      ))
   ))
 
 (require rackunit/text-ui)

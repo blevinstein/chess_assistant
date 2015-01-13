@@ -66,7 +66,7 @@
 (provide char->rank)
 (: char->rank (-> Char Integer))
 (define (char->rank c)
-  (when (not (rank? c)) (raise "rank out of bounds"))
+  (when (not (rank? c)) (raise 'rank-out-of-bounds))
   (char-diff c #\1))
 
 ; returns true if a given character represents a file
@@ -78,7 +78,7 @@
 (provide char->file)
 (: char->file (-> Char Integer))
 (define (char->file c)
-  (when (not (file? c)) (raise "file out of bounds"))
+  (when (not (file? c)) (raise 'file-out-of-bounds))
   (char-diff c #\a))
 
 ; gives the letter representing a file
@@ -114,7 +114,7 @@
         (lambda (loc) (equal? (location-file loc) (char->file hint-char)))]
       [(rank? hint-char)
         (lambda (loc) (equal? (location-rank loc) (char->rank hint-char)))]
-      [else (raise "not a valid hint")]))
+      [else (raise 'not-a-valid-hint)]))
   (: is-hint? (-> Char Boolean))
   (define (is-hint? hint-char)
     (or (file? hint-char) (rank? hint-char)))
@@ -124,7 +124,7 @@
     (not (null? (member piece-char (string->list "KQNBRP")))))
   (: char->piece (-> Char Symbol))
   (define (char->piece c)
-    (when (not (is-piece? c)) raise "not a valid piece")
+    (when (not (is-piece? c)) (raise 'not-a-valid-piece))
     (string->symbol (list->string (list c))))
   (: infer-move (-> Symbol location
                     [#:hint (-> location Boolean)]
@@ -141,7 +141,6 @@
             (and (equal? color (first cpl))
                  (equal? piece (second cpl))))
           position)))
-    (displayln candidate-locations)
     ; find all locations which are the source of a valid move to dest
     (define valid-locations (filter
       (lambda: ([loc : location])
@@ -150,8 +149,8 @@
       candidate-locations))
     (move (cond
       [(equal? 1 (length valid-locations)) (first valid-locations)]
-      [(equal? 0 (length valid-locations)) (raise "no valid moves found")]
-      [else (raise "not implemented yet")]) dest))
+      [(equal? 0 (length valid-locations)) (raise 'no-valid-moves-found)]
+      [else (raise 'not-implemented-yet)]) dest))
   (: parse-loc (-> Char Char location))
   (define (parse-loc file rank) (location (char->file file) (char->rank rank)))
   (match (string->list str)
@@ -180,20 +179,16 @@
   ; TODO fix
   (define source (position-ref position (move-source mv)))
   (define dest (position-ref position (move-dest mv)))
+  (define legal-moves (possible-moves position (move-source mv)))
+  (displayln legal-moves)
   (cond
-    [(and (color-piece? source) (color-piece? dest))
-      (and
-        ; source contains a piece
-        (not (null? source))
-        ; this move can be performed by the source piece
-        (member move (possible-moves position (move-source mv)))
-        ; dest is empty or contains an enemy piece
-        (or
-          (null? dest)
-          (and
-            (not (null? dest))
-            (not (equal? (car source) (car dest))))))]
-    [else #f]))
+    ; source does not contain a piece
+    [(false? source) #f]
+    ; piece cannot make this move
+    [(not (member mv legal-moves)) #f]
+    ; cannot take own piece
+    [(and (color-piece? source) (color-piece? dest) (equal? (car source) (car dest))) #f]
+    [else #t]))
 
 ; get a ColorPiece from a position
 (provide position-ref)
@@ -202,7 +197,7 @@
   (: at-location? (-> ColorPieceLocation Boolean))
   (define (at-location? cpl) (equal? (third cpl) loc))
   (define pieces-at-location (filter at-location? position))
-  (when (> (length pieces-at-location) 1) (raise "Invalid state!"))
+  (when (> (length pieces-at-location) 1) (raise 'invalid-state))
   (if (empty? pieces-at-location)
     #f
     (match pieces-at-location [(list (list color piece _)) (cons color piece)])))
@@ -224,7 +219,7 @@
   (cond
     [(color-piece? color-piece)
       ((piece-move-func (cdr color-piece)) position loc)]
-    [else (raise "no piece there")]))
+    [else (raise 'no-piece-at-location)]))
 
 ; returns the appropriate function for calculating a piece's moves
 (: piece-move-func (-> Symbol (-> Position location (Listof move))))
@@ -235,7 +230,8 @@
     ['R rook-moves]
     ['B bishop-moves]
     ['K king-moves]
-    ['Q queen-moves]))
+    ['Q queen-moves]
+    [_ (raise 'not-a-valid-move)]))
 
 ; returns the moves a leaper can make
 (: leaper-moves (-> location Position location (Listof move)))
@@ -262,31 +258,45 @@
       (all-offsets offset))))
 
 ; defines piece moves in terms of leapers and riders
+
+(provide knight-moves)
 (: knight-moves (-> Position location (Listof move)))
 (define knight-moves (curry leaper-moves (location 1 2)))
+
+(provide rook-moves)
 (: rook-moves (-> Position location (Listof move)))
 (define rook-moves (curry rider-moves (location 1 0)))
+
+(provide bishop-moves)
 (: bishop-moves (-> Position location (Listof move)))
 (define bishop-moves (curry rider-moves (location 1 1)))
+
+(provide queen-moves)
 (: queen-moves (-> Position location (Listof move)))
 (define (queen-moves position source)
   (append
     (rider-moves (location 1 0) position source)
     (rider-moves (location 1 1) position source)))
+
+(provide king-moves)
 (: king-moves (-> Position location (Listof move)))
 (define (king-moves position source)
   (append
     (leaper-moves (location 1 0) position source)
     (leaper-moves (location 1 1) position source)))
+
+(provide pawn-moves)
 (: pawn-moves (-> Position location (Listof move)))
 (define (pawn-moves position source)
   (: open? (-> location Boolean))
-  (define (open? space) (null? (position-ref position space)))
+  (define (open? space) (not (position-ref position space)))
   (define color (car (position-ref! position source)))
   (: can-attack? (-> location Boolean))
   (define (can-attack? space)
-    (define color-piece (position-ref! position space))
-    (and (not (null? color-piece)) (not (equal? (car color-piece) color))))
+    (define color-piece (position-ref position space))
+    (cond
+      [(color-piece? color-piece) (not (equal? (car color-piece) color))]
+      [else #f]))
   (define rank (location-rank source))
   (define direction (if (equal? color 'white) (location 0 1) (location 0 -1)))
   (define unmoved (or (and (equal? color 'white) (equal? rank 1))
@@ -297,13 +307,13 @@
   (define plus-two (add-location-list source direction direction))
   (define left (add-location-list source direction (location -1 0)))
   (define right (add-location-list source direction (location 1 0)))
-  (filter move?
-    (ann (list
+  (define: optional-moves : (Listof (Option move))
+    (list
       (if (open? plus-one) (move-to plus-one) #f)
       (if (and unmoved (open? plus-one) (open? plus-two)) (move-to plus-two) #f)
       (if (and (not (open? left)) (can-attack? left)) (move-to left) #f)
-      (if (and (not (open? right)) (can-attack? right)) (move-to right) #f)
-      ) (Listof (Option move)))))
+      (if (and (not (open? right)) (can-attack? right)) (move-to right) #f)))
+  (filter move? optional-moves))
 
 ; checks that a location is in [0,8) x [0,8)
 (define (in-bounds loc)
