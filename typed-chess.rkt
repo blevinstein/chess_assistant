@@ -176,11 +176,9 @@
 (provide valid-move)
 (: valid-move (-> Position move Boolean))
 (define (valid-move position mv)
-  ; TODO fix
   (define source (position-ref position (move-source mv)))
   (define dest (position-ref position (move-dest mv)))
   (define legal-moves (possible-moves position (move-source mv)))
-  (displayln legal-moves)
   (cond
     ; source does not contain a piece
     [(false? source) #f]

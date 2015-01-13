@@ -40,17 +40,19 @@
       (check-equal? (length all-locations) 64))
 
     (test-case "valid-move"
-      (define (parse-move a b) (move (new-location a)
-                                      (new-location b)))
+      (define (parse-move a b) (move (new-location a) (new-location b)))
       (check-true (valid-move (new-position) (parse-move "c2" "c3")) "c3")
       (check-true (valid-move (new-position) (parse-move "b1" "c3")) "Nc3"))
 
     (test-case "pawn-moves"
-      (define (parse-move a b) (move (new-location a)
-                                      (new-location b)))
-      (check-equal? (pawn-moves (new-position) (new-location "c2"))
-        (list (parse-move "c2" "c3") (parse-move "c2" "c4"))
-      ))
+      (define (parse-move a b) (move (new-location a) (new-location b)))
+      (check-equal? (list (parse-move "c2" "c3") (parse-move "c2" "c4"))
+        (pawn-moves (new-position) (new-location "c2"))))
+
+    (test-case "knight-moves"
+      (define (parse-move a b) (move (new-location a) (new-location b)))
+      (check-equal? (set (parse-move "b1" "a3") (parse-move "b1" "c3") (parse-move "b1" "d2"))
+        (list->set (knight-moves (new-position) (new-location "b1")))))
   ))
 
 (require rackunit/text-ui)
