@@ -48,20 +48,18 @@
 (define (print-moves moves)
   (displayln (map move-repr moves)))
 
-; TODO add unit tests
-;
+; TODO refactor print code
+; http://docs.racket-lang.org/reference/Printer_Extension.html#%28def._%28%28lib._racket%2Fprivate%2Fbase..rkt%29._gen~3acustom-write%29%29
+
 ; TODO move-repr
 ;
-; TODO castling
-; TODO add REPL commands
 ; TODO store history of moves, allow replay/undo
 ;
 ; TODO en passant
 ; TODO check, checkmate
 ; TODO draws
 ;
-; TODO catch errors in repl
-; TODO rider-shadow (for pins/skewers)
+; TODO rider-shadow (for pins/skewers/hidden attacks)
 
 ; terminal escape sequences
 (define bg-white (esc 48 5 246))
@@ -110,18 +108,11 @@
     (if (command? first-char)
       ((command first-char) current-position (substring input 1))
       (with-handlers ([symbol? (lambda (exn) (displayln (errormsg exn)))])
-        (define mv (new-move current-position to-move input))
-        (define source (move-source mv))
-        (define dest (move-dest mv))
+        (define move-list (new-move current-position to-move input))
+        (for ([mv move-list])
+          (set! current-position (make-move current-position mv)))
+        (set! to-move (other-player to-move))))
 
-        (define move-color (car (position-ref current-position source)))
-        (if (equal? move-color to-move)
-          (if (valid-move current-position mv)
-            (list
-              (set! current-position (make-move current-position mv))
-              (set! to-move (other-player to-move)))
-            (displayln "Invalid move!"))
-          (displayln "Wrong player!"))))
 
     (loop)))
 

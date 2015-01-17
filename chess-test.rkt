@@ -27,7 +27,7 @@
     (test-case "new-move"
       (check-equal?
         (new-move (new-position) 'white "e4")
-        (move (new-location "e2") (new-location "e4"))))
+        (list (move (new-location "e2") (new-location "e4")))))
 
     (test-case "char-diff"
       (check-equal? 0 (char-diff #\a #\a))

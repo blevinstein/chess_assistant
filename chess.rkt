@@ -15,11 +15,9 @@
 
 (define-type Position (Listof ColorPieceLocation))
 
+(define-type Move (Listof move))
 (provide (struct-out move))
 (struct: move ([source : location] [dest : location]) #:transparent)
-
-; TODO refactor print code
-; http://docs.racket-lang.org/reference/Printer_Extension.html#%28def._%28%28lib._racket%2Fprivate%2Fbase..rkt%29._gen~3acustom-write%29%29
 
 ; gives the point value of each piece
 (provide piece-value)
@@ -103,8 +101,11 @@
             (char->rank (string-ref str 1))))
 
 ; creates a new move from a string representation
+; TODO promotions
+; TODO castling
+; TODO en passant
 (provide new-move)
-(: new-move (-> Position Symbol String move))
+(: new-move (-> Position Symbol String Move))
 (define (new-move position color str)
   ; creates a predicate which acts on locations, given a hint character (1-8 or a-h)
   (: hint-pred (-> Char (-> location Boolean)))
@@ -128,12 +129,10 @@
     (string->symbol (list->string (list c))))
   (: infer-move (-> Symbol location
                     [#:hint (-> location Boolean)]
-                    [#:promote Symbol]
-                    [#:castle Symbol] move))
+                    [#:promote Symbol] move))
   (define (infer-move piece dest
       #:hint [hint empty]
-      #:promote [promote empty]
-      #:castle [castle empty])
+      #:promote [promote empty])
     ; find all pieces of the right color and type
     (define candidate-locations
       (map (lambda: ([cpl : ColorPieceLocation]) (third cpl))
@@ -151,26 +150,36 @@
       [(equal? 1 (length valid-locations)) (first valid-locations)]
       [(equal? 0 (length valid-locations)) (raise 'no-valid-moves-found)]
       [else (raise 'not-implemented-yet)]) dest))
+  (define (back-rank color)
+    (match color ['white 0] ['black 7]))
   (: parse-loc (-> Char Char location))
   (define (parse-loc file rank) (location (char->file file) (char->rank rank)))
   (match (string->list str)
+    ; kingside castle
+    [(list #\O #\- #\O)
+      (list (move (location (char->file #\h) (back-rank color)) (location (char->file #\f) (back-rank color)))
+            (move (location (char->file #\e) (back-rank color)) (location (char->file #\g) (back-rank color))))]
+    ; queenside castle
+    [(list #\O #\- #\O #\- #\O)
+      (list (move (location (char->file #\a) (back-rank color)) (location (char->file #\d) (back-rank color)))
+            (move (location (char->file #\e) (back-rank color)) (location (char->file #\c) (back-rank color))))]
     [(list file rank)
-      (infer-move 'P (parse-loc file rank))]
+      (list (infer-move 'P (parse-loc file rank)))]
     [(list piece file rank) #:when (is-piece? piece)
-      (infer-move (char->piece piece) (parse-loc file rank))]
+      (list (infer-move (char->piece piece) (parse-loc file rank)))]
     [(list hint file rank) #:when (is-hint? hint)
-      (infer-move 'P (parse-loc file rank) #:hint (hint-pred hint))]
+      (list (infer-move 'P (parse-loc file rank) #:hint (hint-pred hint)))]
     [(list piece hint file rank) #:when (and (is-piece? piece) (is-hint? hint))
-      (infer-move (char->piece piece) (parse-loc file rank) #:hint (hint-pred hint))]
+      (list (infer-move (char->piece piece) (parse-loc file rank) #:hint (hint-pred hint)))]
     [(list file rank promote) #:when (is-piece? promote)
-      (infer-move 'P (parse-loc file rank) #:promote (char->piece promote))]
+      (list (infer-move 'P (parse-loc file rank) #:promote (char->piece promote)))]
     [(list hint file rank promote) #:when (and (is-hint? hint) (is-piece? promote))
-      (infer-move 'P (parse-loc file rank)
-        #:hint (hint-pred hint) #:promote (char->piece promote))]
+      (list (infer-move 'P (parse-loc file rank)
+        #:hint (hint-pred hint) #:promote (char->piece promote)))]
     [(list piece hfile hrank file rank)
         #:when (and (file? hfile) (rank? hrank) (is-piece? piece))
-      (infer-move (char->piece piece) (parse-loc file rank)
-          #:hint (curry equal? (parse-loc hfile hrank)))]
+      (list (infer-move (char->piece piece) (parse-loc file rank)
+          #:hint (curry equal? (parse-loc hfile hrank))))]
     [_ (raise 'unrecognized-move)]))
 
 (provide valid-move)
