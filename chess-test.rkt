@@ -53,6 +53,35 @@
       (define (parse-move a b) (move (new-location a) (new-location b)))
       (check-equal? (set (parse-move "b1" "a3") (parse-move "b1" "c3") (parse-move "b1" "d2"))
         (list->set (knight-moves (new-position) (new-location "b1")))))
+
+    (test-case "rook-moves"
+      (define (parse-move a b) (move (new-location a) (new-location b)))
+      (check-equal? (set (parse-move "a1" "a2") (parse-move "a1" "b1"))
+        (list->set (rook-moves (new-position) (new-location "a1"))))
+      (check-equal?
+        (list->set (rook-moves (new-position) (new-location "a3")))
+        (set (parse-move "a3" "b3") (parse-move "a3" "c3") (parse-move "a3" "d3")
+             (parse-move "a3" "e3") (parse-move "a3" "f3") (parse-move "a3" "g3")
+             (parse-move "a3" "h3")
+             (parse-move "a3" "a2")
+             (parse-move "a3" "a4") (parse-move "a3" "a5") (parse-move "a3" "a6")
+             (parse-move "a3" "a7")))
+      )
+
+    (test-case "queen-moves"
+      (define (parse-move a b) (move (new-location a) (new-location b)))
+      (check-equal?
+      (list->set (queen-moves (new-position) (new-location "d5")))
+        (set
+          (parse-move "d5" "c6") (parse-move "d5" "b7")
+          (parse-move "d5" "d6") (parse-move "d5" "d7")
+          (parse-move "d5" "e6") (parse-move "d5" "f7")
+          (parse-move "d5" "c4") (parse-move "d5" "b3") (parse-move "d5" "a2")
+          (parse-move "d5" "e4") (parse-move "d5" "f3") (parse-move "d5" "g2")
+          (parse-move "d5" "d4") (parse-move "d5" "d3") (parse-move "d5" "d2")
+          (parse-move "d5" "c5") (parse-move "d5" "b5") (parse-move "d5" "a5")
+          (parse-move "d5" "e5") (parse-move "d5" "f5") (parse-move "d5" "g5")
+          (parse-move "d5" "h5"))))
   ))
 
 (require rackunit/text-ui)

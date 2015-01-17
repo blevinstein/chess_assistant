@@ -239,6 +239,7 @@
       (map (curry add-location source) (all-offsets offset)))))
 
 ; returns all moves a rider can make along a single path
+(provide rider-path)
 (: rider-path (-> location Position location location (Listof move)))
 (define (rider-path offset position original source)
   (define dest (add-location source offset))
@@ -246,7 +247,7 @@
   (define piece-at-dest (position-ref position dest))
   (cond
     [(not (in-bounds dest)) null]
-    [(null? piece-at-dest) (cons mv (rider-path offset position original dest))]
+    [(false? piece-at-dest) (cons mv (rider-path offset position original dest))]
     [else (list mv)]))
 
 (: rider-moves (-> location Position location (Listof move)))
