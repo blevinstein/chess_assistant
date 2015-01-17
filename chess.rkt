@@ -370,7 +370,6 @@
 (provide grid->position)
 (: grid->position (-> Grid Position))
 (define (grid->position grid)
-  (define not-null (compose1 not null?))
   (define cpls : (Listof (Option ColorPieceLocation))
     (for/list ([loc all-locations])
       (define color-piece (grid-ref grid loc))
