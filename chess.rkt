@@ -303,12 +303,6 @@
   (: open? (-> location Boolean))
   (define (open? space) (not (position-ref position space)))
   (define color (car (position-ref! position source)))
-  (: can-attack? (-> location Boolean))
-  (define (can-attack? space)
-    (define color-piece (position-ref position space))
-    (cond
-      [(color-piece? color-piece) (not (equal? (car color-piece) color))]
-      [else #f]))
   (define rank (location-rank source))
   (define direction (if (equal? color 'white) (location 0 1) (location 0 -1)))
   (define unmoved (or (and (equal? color 'white) (equal? rank 1))
@@ -323,8 +317,8 @@
     (list
       (if (open? plus-one) (move-to plus-one) #f)
       (if (and unmoved (open? plus-one) (open? plus-two)) (move-to plus-two) #f)
-      (if (and (not (open? left)) (can-attack? left)) (move-to left) #f)
-      (if (and (not (open? right)) (can-attack? right)) (move-to right) #f)))
+      (if (not (open? left)) (move-to left) #f)
+      (if (not (open? right)) (move-to right) #f)))
   (filter move? optional-moves))
 
 ; checks that a location is in [0,8) x [0,8)
