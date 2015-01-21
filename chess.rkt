@@ -185,7 +185,7 @@
 (provide possible-move)
 (: possible-move (-> Position move Boolean))
 (define (possible-move position mv)
-  (not (null? (member mv (possible-moves position (move-source mv))))))
+  (not (false? (member mv (possible-moves position (move-source mv))))))
 
 ; TODO allow castling
 (provide valid-move)
@@ -193,12 +193,11 @@
 (define (valid-move position mv)
   (define source (position-ref position (move-source mv)))
   (define dest (position-ref position (move-dest mv)))
-  (define legal-moves (possible-moves position (move-source mv)))
   (cond
     ; source does not contain a piece
     [(false? source) #f]
     ; piece cannot make this move
-    [(not (member mv legal-moves)) #f]
+    [(not (possible-move position mv)) #f]
     ; cannot take own piece
     [(and (color-piece? source) (color-piece? dest) (equal? (car source) (car dest))) #f]
     [else #t]))
@@ -436,28 +435,54 @@
         ) (Listof move))
       ) (Listof (Listof move))))))
 
-; return a list of enemy squares attacking a given square
-(provide attackers)
-(: attackers (-> Position location (Listof location)))
-(define (attackers position target)
-  (define target-color (car (position-ref! position target)))
-  (define enemy-locations
-    (map (lambda: ([cpl : ColorPieceLocation]) (third cpl))
-      (filter
-        (lambda: ([cpl : ColorPieceLocation]) (equal? (first cpl) (other-player target-color)))
-        position)))
-  (map move-source (get-moves position enemy-locations (list target))))
+; return a list of squares occupied by this color
+(: locations-of-color (-> Position Symbol (Listof location)))
+(define (locations-of-color position target-color)
+  (map (lambda: ([cpl : ColorPieceLocation]) (third cpl))
+    (filter (lambda: ([cpl : ColorPieceLocation]) (equal? (first cpl) target-color))
+      position)))
 
 ; return a list of friendly squares defending a given square
 (provide defenders)
 (: defenders (-> Position location (Listof location)))
 (define (defenders position target)
   (define target-color (car (position-ref! position target)))
-  (define friendly-locations
-    (map (lambda: ([cpl : ColorPieceLocation]) (third cpl))
-      (filter (lambda: ([cpl : ColorPieceLocation]) (equal? (first cpl) target-color))
-        position)))
-  (map move-source (get-moves position friendly-locations (list target))))
+  (map move-source
+    (get-moves position
+      (locations-of-color position target-color)
+      (list target)
+      )))
+
+(provide defending)
+(: defending (-> Position location (Listof location)))
+(define (defending position target)
+  (define target-color (car (position-ref! position target)))
+  (map move-dest
+    (get-moves position
+      (list target)
+      (locations-of-color position target-color)
+      )))
+
+; return a list of enemy squares attacking a given square
+(provide attackers)
+(: attackers (-> Position location (Listof location)))
+(define (attackers position target)
+  (define target-color (car (position-ref! position target)))
+  (map move-source
+    (get-moves position
+      (locations-of-color position (other-player target-color))
+      (list target)
+      )))
+
+(provide attacking)
+(: attacking (-> Position location (Listof location)))
+(define (attacking position target)
+  (define target-color (car (position-ref! position target)))
+  (map move-dest
+    (get-moves position
+      (list target)
+      (locations-of-color position (other-player target-color))
+      )))
 
 (provide threat-count)
 (: threat-count (-> Position location Integer))

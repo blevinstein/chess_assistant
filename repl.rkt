@@ -99,6 +99,10 @@
   (print-locations (attackers position square))
   (displayln "Defenders:")
   (print-locations (defenders position square))
+  (displayln "Attacking:")
+  (print-locations (attacking position square))
+  (displayln "Defending:")
+  (print-locations (defending position square))
   )
 
 (define (command char)
