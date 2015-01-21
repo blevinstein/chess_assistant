@@ -1,8 +1,10 @@
 #lang racket
 
 (require "chess.rkt")
+(require racket/format)
 
 ; used to generate terminal escape sequences
+; http://misc.flogisoft.com/bash/tip_colors_and_formatting
 (provide esc)
 (define (esc . codes)
   (string-append
@@ -12,28 +14,49 @@
 
 ; print subroutines
 
+(define (threat-number position location)
+  (define threat (threat-count position location))
+  (define red (esc 91))
+  (define green (esc 92))
+  (define yellow (esc 93))
+  (string-append
+    (cond
+      [(positive? threat) green]
+      [(zero? threat) yellow]
+      [(negative? threat) red])
+    (~a threat #:min-width 2 #:align 'right)
+    ))
+
 (provide print-square)
-(define (print-square background color-piece)
+(define (print-square position location background color-piece)
   (display (if (equal? background 'black) bg-black bg-white))
   (display " ")
   (match color-piece
     [(cons color piece)
-      (display (if (equal? color 'black) fg-black fg-white))
-      (display (piece-code piece))]
-    [null (display " ")])
+      (display (string-append
+        (if (equal? color 'black) fg-black fg-white)
+        (piece-code piece)
+        (threat-number position location)
+        ))]
+    [null (display "   ")])
   (display " "))
 
 (provide print-grid)
 (define (print-grid grid)
+  (define position (grid->position grid))
   (display "  ")
   (for ([file (in-range 8)])
-    (display (string-append " " (file-string file) " ")))
+    (display (string-append "  " (file-string file) "  ")))
   (displayln "")
   (for ([rank (in-range 8)])
     (display (string-append (rank-string rank) " "))
     (for ([file (in-range 8)])
       (define color-piece (grid-ref grid (location file rank)))
-      (print-square (if (equal? (modulo (+ file rank) 2) 0) 'black 'white) color-piece))
+      (print-square
+        position
+        (location file rank)
+        (if (equal? (modulo (+ file rank) 2) 0) 'black 'white)
+        color-piece))
     (displayln reset)))
 
 (provide print-position)
@@ -70,7 +93,13 @@
 
 (define (info-cmd position input)
   (define square (new-location input))
-  (print-moves (possible-moves position square)))
+  (displayln "Moves:")
+  (print-moves (possible-moves position square))
+  (displayln "Attackers:")
+  (print-locations (attackers position square))
+  (displayln "Defenders:")
+  (print-locations (defenders position square))
+  )
 
 (define (command char)
   (hash-ref (hash
@@ -94,17 +123,10 @@
     
     (displayln (string-append "to move: " (symbol->string to-move)))
 
-    ;(display "attackers ")
-    ;(print-locations (attackers current-position source))
-    ;(display "defenders ")
-    ;(print-locations (defenders current-position source))
-    ;(display "threat # ")
-    ;(displayln (threat-count current-position source))
-
     (display "move > ")
     (define input (read-line-exit))
     (define first-char (string-ref input 0))
-    (define (errormsg exn) (string-append (esc 31) (symbol->string exn) (esc 0)))
+    (define (errormsg exn) (string-append (esc 31) (symbol->string exn) reset))
     (if (command? first-char)
       ((command first-char) current-position (substring input 1))
       (with-handlers ([symbol? (lambda (exn) (displayln (errormsg exn)))])

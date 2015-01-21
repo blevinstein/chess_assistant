@@ -182,6 +182,12 @@
           #:hint (curry equal? (parse-loc hfile hrank))))]
     [_ (raise 'unrecognized-move)]))
 
+(provide possible-move)
+(: possible-move (-> Position move Boolean))
+(define (possible-move position mv)
+  (not (null? (member mv (possible-moves position (move-source mv))))))
+
+; TODO allow castling
 (provide valid-move)
 (: valid-move (-> Position move Boolean))
 (define (valid-move position mv)
@@ -400,6 +406,7 @@
 (provide make-move)
 (: make-move (-> Position move Position))
 (define (make-move position mv)
+  (when (not (valid-move position mv)) (raise 'invalid-move-made))
   (define source (move-source mv))
   (define dest (move-dest mv))
   (define color-piece (position-ref! position source))
@@ -418,11 +425,10 @@
       position)))
 
 ; get all moves from a source in source-list to a dest in dest-list
-; NOTE does not handle castling
 (: get-moves (-> Position (Listof location) (Listof location) (Listof move)))
 (define (get-moves position source-list dest-list)
   (filter
-    (curry valid-move position)
+    (curry possible-move position)
     (append*
       (ann (for/list ([source source-list])
         (ann (for/list ([dest dest-list])
@@ -431,16 +437,19 @@
       ) (Listof (Listof move))))))
 
 ; return a list of enemy squares attacking a given square
+(provide attackers)
 (: attackers (-> Position location (Listof location)))
 (define (attackers position target)
   (define target-color (car (position-ref! position target)))
   (define enemy-locations
     (map (lambda: ([cpl : ColorPieceLocation]) (third cpl))
-      (filter (lambda: ([cpl : ColorPieceLocation]) (equal? (first cpl) (other-player target-color)))
+      (filter
+        (lambda: ([cpl : ColorPieceLocation]) (equal? (first cpl) (other-player target-color)))
         position)))
   (map move-source (get-moves position enemy-locations (list target))))
 
 ; return a list of friendly squares defending a given square
+(provide defenders)
 (: defenders (-> Position location (Listof location)))
 (define (defenders position target)
   (define target-color (car (position-ref! position target)))
@@ -450,6 +459,7 @@
         position)))
   (map move-source (get-moves position friendly-locations (list target))))
 
+(provide threat-count)
 (: threat-count (-> Position location Integer))
 (define (threat-count position loc)
   (-

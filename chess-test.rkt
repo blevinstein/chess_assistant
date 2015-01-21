@@ -42,7 +42,9 @@
     (test-case "valid-move"
       (define (parse-move a b) (move (new-location a) (new-location b)))
       (check-true (valid-move (new-position) (parse-move "c2" "c3")) "c3")
-      (check-true (valid-move (new-position) (parse-move "b1" "c3")) "Nc3"))
+      (check-true (valid-move (new-position) (parse-move "b1" "c3")) "Nc3")
+      (check-false (valid-move (new-position) (parse-move "c2" "c5")) "!")
+      )
 
     (test-case "pawn-moves"
       (define (parse-move a b) (move (new-location a) (new-location b)))
@@ -82,6 +84,11 @@
           (parse-move "d5" "c5") (parse-move "d5" "b5") (parse-move "d5" "a5")
           (parse-move "d5" "e5") (parse-move "d5" "f5") (parse-move "d5" "g5")
           (parse-move "d5" "h5"))))
+
+    (test-case "defenders"
+      (check-equal?
+        (defenders (new-position) (new-location "f2"))
+        (list (new-location "e1"))))
   ))
 
 (require rackunit/text-ui)
