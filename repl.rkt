@@ -80,7 +80,7 @@
 ;
 ; TODO en passant
 ; TODO check, checkmate
-; TODO draws
+; TODO win/lose/draw
 ;
 ; TODO rider-shadow (for pins/skewers/hidden attacks)
 
