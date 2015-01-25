@@ -1,25 +1,27 @@
 #lang racket
 
+(require web-server/dispatch)
 (require web-server/servlet)
 (require web-server/servlet-env)
 (require web-server/templates)
 
-;(no-web-browser)
-;(static-files-path "web")
+(define (main)
+  (serve/servlet start
+    #:servlet-regexp #rx""
+    #:port 8000
+    #:launch-browser? #f))
 
-(require web-server/dispatch)
+(define (start req)
+  (log-info (url->string (request-uri req)))
+  (handle-request req))
+
 (define-values (handle-request path-to)
   (dispatch-rules
-    [else home]
+    [("") home]
     ))
 
 (define (home req)
-  (log-info (url->string (request-uri req)))
   (response/output
-    (lambda (out) (display (include-template "hello.html") out))))
+    (lambda (out) (display (include-template "index.html") out))))
 
-(serve/servlet handle-request
-  #:servlet-regexp #rx""
-  #:port 8000
-  #:launch-browser? #f
-  #:extra-files-paths (list "web"))
+(main)
