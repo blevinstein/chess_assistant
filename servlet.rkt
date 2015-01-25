@@ -12,14 +12,17 @@
     #:server-root-path (current-directory)
     #:servlet-regexp #rx""))
 
+; entry point for serving a request
 (define (start req)
   (log-info (url->string (request-uri req)))
   (handle-request req))
 
-(define (render tmp)
+; render a page from a template
+(define (render template)
   (response/output
-    (lambda (out) (display tmp out))))
+    (lambda (out) (display template out))))
 
+; routing definitions
 (define-values (handle-request path-to)
   (dispatch-rules
     [("") home]
