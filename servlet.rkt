@@ -1,9 +1,15 @@
 #lang racket
 
+(require json)
 (require web-server/dispatch)
 (require web-server/servlet)
 (require web-server/servlet-env)
 (require web-server/templates)
+
+(require "chess.rkt")
+
+; TODO add client-side rpcs
+; TODO rpc get-hud
 
 (define (main)
   (serve/servlet start
@@ -22,13 +28,32 @@
   (response/output
     (lambda (out) (display template out))))
 
+(define (render-json expr)
+  (response/output
+    (lambda (out) (write-json expr out))))
+
 ; routing definitions
 (define-values (handle-request path-to)
   (dispatch-rules
     [("") home]
+    [("new-board") new-board]
     ))
 
 (define (home req)
   (render (include-template "template/index.html")))
 
+(define (new-board req)
+  (render-json (grid->json (new-grid))))
+
+(define (grid->json grid)
+  (define (xfm-cp cp)
+    (match cp
+      [(cons color piece) (hash 'color (~a color)
+                                'piece (~a piece))]
+      [#f 'null]))
+  (define (xfm-row row)
+    (map xfm-cp row))
+  (map xfm-row grid))
+
 (main)
+
