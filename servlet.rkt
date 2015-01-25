@@ -7,13 +7,18 @@
 
 (define (main)
   (serve/servlet start
-    #:servlet-regexp #rx""
+    #:launch-browser? #f
     #:port 8000
-    #:launch-browser? #f))
+    #:server-root-path (current-directory)
+    #:servlet-regexp #rx""))
 
 (define (start req)
   (log-info (url->string (request-uri req)))
   (handle-request req))
+
+(define (render tmp)
+  (response/output
+    (lambda (out) (display tmp out))))
 
 (define-values (handle-request path-to)
   (dispatch-rules
@@ -21,7 +26,6 @@
     ))
 
 (define (home req)
-  (response/output
-    (lambda (out) (display (include-template "index.html") out))))
+  (render (include-template "template/index.html")))
 
 (main)
