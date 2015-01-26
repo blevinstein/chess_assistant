@@ -22,8 +22,8 @@
       <template repeat="{{ rank in ranks }}">
         <tr>
           <template repeat="{{ file in files }}">
-            <td style="background-color:{{ color(file, rank) }}">
-            {{ square(grid[rank][file]) }}
+            <td style="background-color:{{ getColor(file, rank) }}">
+            {{ getCode(grid[rank][file]) }}
             </td>
           </template>
         </tr>
@@ -49,7 +49,7 @@
                    "N": '\u265e',
                    "P": '\u265f'},
 
-      color: function (file, rank) {
+      getColor: function (file, rank) {
         if ((file + rank) % 2 == 0) {
           return "#bbb";
         } else {
@@ -57,20 +57,20 @@
         }
       },
 
-      square: function (cp) {
+      getCode: function (cp) {
         if (cp == null) { return ""; }
         if (cp.color == "white") { return this.whiteCodes[cp.piece]; }
         if (cp.color == "black") { return this.blackCodes[cp.piece]; }
       },
 
-      load: function (newGrid) {
+      setGrid: function (newGrid) {
         this.grid = newGrid;
       },
 
       ready: function () {
         var self = this;
         this.$.xhr.request({url: "/new-board", callback: function (resp) {
-            self.load(JSON.parse(resp));
+            self.setGrid(JSON.parse(resp));
           }});
       }
     });
