@@ -47,6 +47,9 @@
 
 ; JSON conversion code
 
+; *->json
+
+(provide grid->json)
 (define (grid->json grid)
   (define (xfm-cp cp)
     (match cp
@@ -65,6 +68,17 @@
   (define (xfm-mv move-part) (match move-part [(move s d) (map location->json (list s d))]))
   (map xfm-mv mv))
 
+; json->*
+
+(provide json->grid)
+(define (json->grid json)
+  (define (xfm-cp cp)
+    (match cp
+      [(hash-table ('color c) ('piece p)) (cons (string->symbol c) (string->symbol p))]
+      ['null #f]))
+  (define (xfm-row row) (map xfm-cp row))
+  (map xfm-row json))
+
 ; EXPERIMENTAL below this line
 
 (define (moves req)
@@ -74,12 +88,5 @@
   (define source (new-location (hash-ref parsed-req 'source)))
   (render-json (map move->json (possible-moves position source))))
 
-;(define (json->grid json)
-;  (define (xfm-cp cp)
-;    (match cp
-;      [(hash-table 'color c 'piece p) (cons (string->symbol c) (string->symbol p))]
-;      ['null #f]))
-;  (define (xfm-row row) (map xfm-cp row))
-;  (map xfm-row json))
-
 (when (vector-member "." (current-command-line-arguments)) (main))
+
