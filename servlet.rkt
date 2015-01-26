@@ -67,14 +67,12 @@
 
 ; EXPERIMENTAL below this line
 
-;(define (moves req)
-;  (define parsed-req (string->jsexpr (request-post-data/raw req)))
-;  (define position (grid->position (json->grid (hash-ref parsed-req 'grid))))
-;  (define source (new-location (hash-ref parsed-req 'source)))
-;  (render-json (moves->json (possible-moves position source))))
-
-(define (moves->json moves)
-  (map move-repr moves))
+(define (moves req)
+  (define parsed-req (string->jsexpr (request-post-data/raw req)))
+  (displayln parsed-req)
+  (define position (grid->position (json->grid (hash-ref parsed-req 'grid))))
+  (define source (new-location (hash-ref parsed-req 'source)))
+  (render-json (map move->json (possible-moves position source))))
 
 ;(define (json->grid json)
 ;  (define (xfm-cp cp)
