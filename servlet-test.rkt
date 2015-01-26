@@ -1,5 +1,6 @@
 #lang racket
 
+(require json)
 (require rackunit)
 (require "chess.rkt")
 (require "servlet.rkt")
@@ -10,8 +11,16 @@
 
     (test-case "location->json"
       (check-equal?
-        (location->json (new-location "a1"))
-        (list 0 0)))
+        (jsexpr->string (location->json (new-location "a1")))
+        "[0,0]")
+      (check-equal?
+        (jsexpr->string (location->json (new-location "b3")))
+        "[1,2]"))
+
+    (test-case "move->json"
+      (check-equal?
+        (jsexpr->string (move->json (new-move (new-position) 'white "e4")))
+        "[[[4,1],[4,3]]]"))
   ))
 
 (require rackunit/text-ui)

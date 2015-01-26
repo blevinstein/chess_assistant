@@ -60,6 +60,11 @@
 (define (location->json loc)
   (match loc [(location f r) (list f r)]))
 
+(provide move->json)
+(define (move->json mv)
+  (define (xfm-mv move-part) (match move-part [(move s d) (map location->json (list s d))]))
+  (map xfm-mv mv))
+
 ; EXPERIMENTAL below this line
 
 ;(define (moves req)
