@@ -8,7 +8,6 @@
 
 (require "chess.rkt")
 
-; TODO add client-side rpcs
 ; TODO rpc get-hud
 
 (define (main)
