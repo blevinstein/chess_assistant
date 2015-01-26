@@ -40,7 +40,7 @@
     ))
 
 (define (home req)
-  (render (include-template "template/index.html")))
+  (redirect-to "index.html" temporarily))
 
 (define (new-board req)
   (render-json (grid->json (new-grid))))
