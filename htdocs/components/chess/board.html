@@ -3,13 +3,27 @@
 
 <polymer-element name="chess-board">
   <template>
+    <style>
+      table {
+        border: 5px solid black;
+        border-spacing: 0;
+      }
+      tr {
+        height: 80px;
+      }
+      td {
+        text-align: center;
+        font-size: 60px;
+        width: 80px;
+      }
+    </style>
     <core-xhr id="xhr"></core-xhr>
     <table>
       <template repeat="{{ rank in ranks }}">
         <tr>
           <template repeat="{{ file in files }}">
-            <td>
-            {{ grid[rank][file].piece }}
+            <td style="background-color:{{ color(file, rank) }}">
+            {{ square(grid[rank][file]) }}
             </td>
           </template>
         </tr>
@@ -18,12 +32,41 @@
   </template>
   <script>
     Polymer({
+      grid: [ ],
+
       files: [0, 1, 2, 3, 4, 5, 6, 7],
       ranks: [0, 1, 2, 3, 4, 5, 6, 7],
-      grid: [ ],
+      whiteCodes: {"K": '\u2654',
+                   "Q": '\u2655',
+                   "R": '\u2656',
+                   "B": '\u2657',
+                   "N": '\u2658',
+                   "P": '\u2659'},
+      blackCodes: {"K": '\u265a',
+                   "Q": '\u265b',
+                   "R": '\u265c',
+                   "B": '\u265d',
+                   "N": '\u265e',
+                   "P": '\u265f'},
+
+      color: function (file, rank) {
+        if ((file + rank) % 2 == 0) {
+          return "#bbb";
+        } else {
+          return "#777";
+        }
+      },
+
+      square: function (cp) {
+        if (cp == null) { return ""; }
+        if (cp.color == "white") { return this.whiteCodes[cp.piece]; }
+        if (cp.color == "black") { return this.blackCodes[cp.piece]; }
+      },
+
       load: function (newGrid) {
         this.grid = newGrid;
       },
+
       ready: function () {
         var self = this;
         this.$.xhr.request({url: "/new-board", callback: function (resp) {
