@@ -10,6 +10,7 @@
 
 ; TODO rpc get-hud
 
+(provide main)
 (define (main)
   (serve/servlet start
     #:launch-browser? #f
@@ -44,15 +45,38 @@
 (define (new-board req)
   (render-json (grid->json (new-grid))))
 
+; JSON conversion code
+
 (define (grid->json grid)
   (define (xfm-cp cp)
     (match cp
       [(cons color piece) (hash 'color (~a color)
                                 'piece (~a piece))]
       [#f 'null]))
-  (define (xfm-row row)
-    (map xfm-cp row))
+  (define (xfm-row row) (map xfm-cp row))
   (map xfm-row grid))
 
-(main)
+(provide location->json)
+(define (location->json loc)
+  (match loc [(location f r) (list f r)]))
 
+; EXPERIMENTAL below this line
+
+;(define (moves req)
+;  (define parsed-req (string->jsexpr (request-post-data/raw req)))
+;  (define position (grid->position (json->grid (hash-ref parsed-req 'grid))))
+;  (define source (new-location (hash-ref parsed-req 'source)))
+;  (render-json (moves->json (possible-moves position source))))
+
+(define (moves->json moves)
+  (map move-repr moves))
+
+;(define (json->grid json)
+;  (define (xfm-cp cp)
+;    (match cp
+;      [(hash-table 'color c 'piece p) (cons (string->symbol c) (string->symbol p))]
+;      ['null #f]))
+;  (define (xfm-row row) (map xfm-cp row))
+;  (map xfm-row json))
+
+(when (vector-member "." (current-command-line-arguments)) (main))
