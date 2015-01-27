@@ -54,7 +54,9 @@
   (define (xfm-cp cp)
     (match cp
       [(cons color piece) (hash 'color (~a color)
-                                'piece (~a piece))]
+                                'piece (~a piece)
+                                'repr (piece-code piece color)
+                                )]
       [#f 'null]))
   (define (xfm-row row) (map xfm-cp row))
   (map xfm-row grid))

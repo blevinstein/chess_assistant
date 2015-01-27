@@ -23,7 +23,7 @@
         <tr>
           <template repeat="{{ file in files }}">
             <td style="background-color:{{ getColor(file, rank) }}">
-            {{ getCode(grid[rank][file]) }}
+            {{ grid[rank][file].repr }}
             </td>
           </template>
         </tr>
@@ -36,18 +36,6 @@
 
       files: [0, 1, 2, 3, 4, 5, 6, 7],
       ranks: [0, 1, 2, 3, 4, 5, 6, 7],
-      whiteCodes: {"K": '\u2654',
-                   "Q": '\u2655',
-                   "R": '\u2656',
-                   "B": '\u2657',
-                   "N": '\u2658',
-                   "P": '\u2659'},
-      blackCodes: {"K": '\u265a',
-                   "Q": '\u265b',
-                   "R": '\u265c',
-                   "B": '\u265d',
-                   "N": '\u265e',
-                   "P": '\u265f'},
 
       getColor: function (file, rank) {
         if ((file + rank) % 2 == 0) {
@@ -55,12 +43,6 @@
         } else {
           return "#777";
         }
-      },
-
-      getCode: function (cp) {
-        if (cp == null) { return ""; }
-        if (cp.color == "white") { return this.whiteCodes[cp.piece]; }
-        if (cp.color == "black") { return this.blackCodes[cp.piece]; }
       },
 
       setGrid: function (newGrid) {

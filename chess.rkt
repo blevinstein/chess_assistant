@@ -33,8 +33,25 @@
 
 ; gives the unicode character of each piece
 (provide piece-code)
-(: piece-code (-> Symbol String))
-(define (piece-code piece)
+(: piece-code (-> Symbol Symbol String))
+(define (piece-code piece color)
+  (match (cons color piece)
+    ['(white . K) "\u2654"]
+    ['(white . Q) "\u2655"]
+    ['(white . R) "\u2656"]
+    ['(white . N) "\u2657"]
+    ['(white . B) "\u2658"]
+    ['(white . P) "\u2659"]
+    ['(black . K) "\u265a"]
+    ['(black . Q) "\u265b"]
+    ['(black . R) "\u265c"]
+    ['(black . N) "\u265d"]
+    ['(black . B) "\u265e"]
+    ['(black . P) "\u265f"]
+    ))
+(provide piece-code-terminal)
+(: piece-code-terminal (-> Symbol String))
+(define (piece-code-terminal piece)
   (hash-ref #hash(
     (K . "\u265a")
     (Q . "\u265b")
@@ -527,7 +544,7 @@
 (: piece-location-repr (-> PieceLocation String))
 (define (piece-location-repr piece-location)
   (match piece-location
-    [(cons piece loc) (string-append (piece-code piece) " @ " (location-repr loc))]))
+    [(cons piece loc) (string-append (piece-code-terminal piece) " @ " (location-repr loc))]))
 
 (provide location-repr)
 (: location-repr (-> location String))
