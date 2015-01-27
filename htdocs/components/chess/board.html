@@ -19,10 +19,13 @@
     </style>
     <core-xhr id="xhr"></core-xhr>
     <table>
-      <template repeat="{{ rank in ranks }}">
+      <template repeat="{{ rank in range(grid.length) }}">
         <tr>
-          <template repeat="{{ file in files }}">
-            <td style="background-color:{{ getColor(file, rank) }}">
+          <template repeat="{{ file in range(grid[rank].length) }}">
+          <td style="background-color:{{ getColor(file, rank) }}"
+              rank="{{rank}}"
+              file="{{file}}"
+              on-click="{{handleClick}}">
             {{ grid[rank][file].repr }}
             </td>
           </template>
@@ -33,11 +36,14 @@
   <script>
     Polymer({
       grid: [ ],
-
-      files: [0, 1, 2, 3, 4, 5, 6, 7],
-      ranks: [0, 1, 2, 3, 4, 5, 6, 7],
+      lit: [ ],
 
       getColor: function (file, rank) {
+        // if [file,rank] in lit, return green
+        for (var i = 0; i < this.lit.length; i++) {
+          if (this.lit[i][0] == file && this.lit[i][1] == rank) { return "#0f0"; }
+        }
+        // else return black/white checkerboard
         if ((file + rank) % 2 == 0) {
           return "#bbb";
         } else {
@@ -49,12 +55,54 @@
         this.grid = newGrid;
       },
 
+      range: function (n) {
+        var arr = [];
+        for (var i = 0; i < n; i++) {
+          arr.push(i);
+        }
+        return arr;
+      },
+
       ready: function () {
         var self = this;
+
+        // get a new board
         this.$.xhr.request({url: "/new-board", callback: function (resp) {
             self.setGrid(JSON.parse(resp));
           }});
-      }
+      },
+
+      refresh: function () {
+        var self = this;
+        // HACK
+        var tmp = self.grid;
+        self.grid = [];
+        setTimeout(function () { self.grid = tmp; }, 1);
+      },
+
+      handleClick: function(e) {
+        var self = this;
+        if (e.toElement.getAttribute("rank") == null) { return; }
+
+        var params = {
+          rank: e.toElement.getAttribute("rank"),
+          file: e.toElement.getAttribute("file"),
+          grid: this.grid
+        };
+
+        this.$.xhr.request({
+          body: JSON.stringify(params),
+          method: "post",
+          url: "/moves",
+          callback: function (resp) {
+            if (resp[0] == "#") { console.log(resp); return; }
+            self.lit = [];
+            JSON.parse(resp).forEach(function (move) {
+                self.lit.push(move[1]);
+              });
+            self.refresh();
+          }});
+      },
     });
   </script>
 </polymer-element>

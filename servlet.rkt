@@ -8,6 +8,7 @@
 
 (require "chess.rkt")
 
+; TODO rpc make-move
 ; TODO rpc get-hud
 
 (provide main)
@@ -20,7 +21,7 @@
 
 ; entry point for serving a request
 (define (start req)
-  (log-info (url->string (request-uri req)))
+  (log-info "request for ~a" (url->string (request-uri req)))
   (handle-request req))
 
 ; render a page from a template
@@ -32,17 +33,25 @@
   (response/output
     (lambda (out) (write-json expr out))))
 
+(define (render-error message)
+  (response/output
+    (lambda (out) (write message out))
+    #:code 500))
+
 ; routing definitions
 (define-values (handle-request path-to)
   (dispatch-rules
     [("") home]
     [("new-board") new-board]
+    [("moves") #:method "post" moves]
     ))
 
 (define (home req)
+  (log-info "home")
   (redirect-to "index.html" temporarily))
 
 (define (new-board req)
+  (log-info "new-board")
   (render-json (grid->json (new-grid))))
 
 ; JSON conversion code
@@ -76,7 +85,7 @@
 (define (json->grid json)
   (define (xfm-cp cp)
     (match cp
-      [(hash-table ('color c) ('piece p)) (cons (string->symbol c) (string->symbol p))]
+      [(hash-table ('color c) ('piece p) (k v) ...) (cons (string->symbol c) (string->symbol p))]
       ['null #f]))
   (define (xfm-row row) (map xfm-cp row))
   (map xfm-row json))
@@ -84,11 +93,19 @@
 ; EXPERIMENTAL below this line
 
 (define (moves req)
-  (define parsed-req (string->jsexpr (request-post-data/raw req)))
-  (displayln parsed-req)
+  (define post-data (request-post-data/raw req))
+  (log-info "moves ~a" post-data)
+  (define parsed-req (bytes->jsexpr post-data))
+  ; params
   (define position (grid->position (json->grid (hash-ref parsed-req 'grid))))
-  (define source (new-location (hash-ref parsed-req 'source)))
-  (render-json (map move->json (possible-moves position source))))
+  (define rank (string->number (hash-ref parsed-req 'rank)))
+  (define file (string->number (hash-ref parsed-req 'file)))
 
+  (define source (location file rank))
+  (with-handlers
+    ([exn:fail? (lambda (s) (log-error "moves error ~a" s) (render-error s))])
+    (render-json (move->json (possible-moves position source)))))
+
+; To execute main: racket servlet.rkt .
 (when (vector-member "." (current-command-line-arguments)) (main))
 
