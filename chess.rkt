@@ -39,14 +39,14 @@
     ['(white . K) "\u2654"]
     ['(white . Q) "\u2655"]
     ['(white . R) "\u2656"]
-    ['(white . N) "\u2657"]
-    ['(white . B) "\u2658"]
+    ['(white . B) "\u2657"]
+    ['(white . N) "\u2658"]
     ['(white . P) "\u2659"]
     ['(black . K) "\u265a"]
     ['(black . Q) "\u265b"]
     ['(black . R) "\u265c"]
-    ['(black . N) "\u265d"]
-    ['(black . B) "\u265e"]
+    ['(black . B) "\u265d"]
+    ['(black . N) "\u265e"]
     ['(black . P) "\u265f"]
     ))
 (provide piece-code-terminal)
@@ -81,7 +81,7 @@
 (provide char->rank)
 (: char->rank (-> Char Integer))
 (define (char->rank c)
-  (when (not (rank? c)) (raise 'rank-out-of-bounds))
+  (when (not (rank? c)) (raise-argument-error 'char->rank "a-h" c))
   (char-diff c #\1))
 
 ; returns true if a given character represents a file
@@ -93,7 +93,7 @@
 (provide char->file)
 (: char->file (-> Char Integer))
 (define (char->file c)
-  (when (not (file? c)) (raise 'file-out-of-bounds))
+  (when (not (file? c)) (raise-argument-error 'char->file "1-8" c))
   (char-diff c #\a))
 
 ; gives the letter representing a file
@@ -132,7 +132,7 @@
         (lambda (loc) (equal? (location-file loc) (char->file hint-char)))]
       [(rank? hint-char)
         (lambda (loc) (equal? (location-rank loc) (char->rank hint-char)))]
-      [else (raise 'not-a-valid-hint)]))
+      [else (raise-argument-error 'hint-pred "a-h or 1-8" hint-char)]))
   (: is-hint? (-> Char Boolean))
   (define (is-hint? hint-char)
     (or (file? hint-char) (rank? hint-char)))
@@ -142,7 +142,7 @@
     (not (null? (member piece-char (string->list "KQNBRP")))))
   (: char->piece (-> Char Symbol))
   (define (char->piece c)
-    (when (not (is-piece? c)) (raise 'not-a-valid-piece))
+    (when (not (is-piece? c)) (raise-argument-error 'char->piece "[KQNBRP]" c))
     (string->symbol (list->string (list c))))
   (: infer-move (-> Symbol location
                     [#:hint (-> location Boolean)]
@@ -165,8 +165,8 @@
       candidate-locations))
     (move (cond
       [(equal? 1 (length valid-locations)) (first valid-locations)]
-      [(equal? 0 (length valid-locations)) (raise 'no-valid-moves-found)]
-      [else (raise 'not-implemented-yet)]) dest))
+      [(equal? 0 (length valid-locations)) (error 'no-valid-moves-found)]
+      [else (error 'not-implemented-yet)]) dest))
   (define (back-rank color)
     (match color ['white 0] ['black 7]))
   (: parse-loc (-> Char Char location))
@@ -197,7 +197,7 @@
         #:when (and (file? hfile) (rank? hrank) (is-piece? piece))
       (list (infer-move (char->piece piece) (parse-loc file rank)
           #:hint (curry equal? (parse-loc hfile hrank))))]
-    [_ (raise 'unrecognized-move)]))
+    [_ (raise-argument-error 'new-move "valid move" str)]))
 
 (provide possible-move)
 (: possible-move (-> Position move Boolean))
@@ -226,7 +226,7 @@
   (: at-location? (-> ColorPieceLocation Boolean))
   (define (at-location? cpl) (equal? (third cpl) loc))
   (define pieces-at-location (filter at-location? position))
-  (when (> (length pieces-at-location) 1) (raise 'invalid-state))
+  (when (> (length pieces-at-location) 1) (error 'invalid-state))
   (if (empty? pieces-at-location)
     #f
     (match pieces-at-location [(list (list color piece _)) (cons color piece)])))
@@ -238,7 +238,7 @@
   (define optional-color-piece (position-ref position loc))
   (cond
     [(color-piece? optional-color-piece) optional-color-piece]
-    [else (raise 'not-a-color-piece)]))
+    [else (raise-result-error 'position-ref! "color-piece" optional-color-piece)]))
 
 ; returns possible moves, given a source location
 (provide possible-moves)
@@ -248,7 +248,7 @@
   (cond
     [(color-piece? color-piece)
       ((piece-move-func (cdr color-piece)) position loc)]
-    [else (raise 'no-piece-at-location)]))
+    [else (raise-user-error 'no-piece-at-location)]))
 
 ; returns the appropriate function for calculating a piece's moves
 (: piece-move-func (-> Symbol (-> Position location (Listof move))))
@@ -260,7 +260,7 @@
     ['B bishop-moves]
     ['K king-moves]
     ['Q queen-moves]
-    [_ (raise 'not-a-valid-move)]))
+    [_ (raise-argument-error 'piece-move-func "[KQBNRP]" piece)]))
 
 ; returns the moves a leaper can make
 (: leaper-moves (-> location Position location (Listof move)))
@@ -416,7 +416,7 @@
 (provide make-move)
 (: make-move (-> Position move Position))
 (define (make-move position mv)
-  (when (not (valid-move position mv)) (raise 'invalid-move-made))
+  (when (not (valid-move position mv)) (raise-user-error 'invalid-move-attempted))
   (define source (move-source mv))
   (define dest (move-dest mv))
   (define color-piece (position-ref! position source))
@@ -531,7 +531,7 @@
   (match color
     ['black 'white]
     ['white 'black]
-    [else raise 'invalid-argument]))
+    [else (raise-argument-error 'other-player "white|black" color)]))
 
 (provide color-piece-repr)
 (: color-piece-repr (-> ColorPiece String))
