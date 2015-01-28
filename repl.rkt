@@ -35,11 +35,15 @@
     [(cons color piece)
       (display (string-append
         (if (equal? color 'black) fg-black fg-white)
-        (piece-code piece)
+        (piece-code piece 'black)
         (threat-number position location)
         ))]
     [null (display "   ")])
   (display " "))
+
+(provide square-color)
+(define (square-color loc)
+  (if (equal? (modulo (+ (location-file loc) (location-rank loc)) 2) 0) 'black 'white))
 
 (provide print-grid)
 (define (print-grid grid)
@@ -55,7 +59,7 @@
       (print-square
         position
         (location file rank)
-        (if (equal? (modulo (+ file rank) 2) 0) 'black 'white)
+        (square-color (location file rank))
         color-piece))
     (displayln reset)))
 

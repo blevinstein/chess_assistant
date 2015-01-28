@@ -58,6 +58,15 @@
 
 ; *->json
 
+(provide position->json)
+(define (position->json position)
+  (for/list ([cpl position])
+    (match cpl [(list color piece location)
+      (hash 'color (~a color)
+            'piece (~a piece)
+            `repr (piece-code piece color)
+            )])))
+
 (provide grid->json)
 (define (grid->json grid)
   (define (xfm-cp cp)

@@ -49,17 +49,6 @@
     ['(black . N) "\u265e"]
     ['(black . P) "\u265f"]
     ))
-(provide piece-code-terminal)
-(: piece-code-terminal (-> Symbol String))
-(define (piece-code-terminal piece)
-  (hash-ref #hash(
-    (K . "\u265a")
-    (Q . "\u265b")
-    (R . "\u265c")
-    (B . "\u265d")
-    (N . "\u265e")
-    (P . "\u265f"))
-    piece))
 
 ; returns a - b using character codes
 (provide char-diff)
@@ -540,11 +529,12 @@
     [(cons color piece) (string-append (symbol->string color) " " (symbol->string piece))]
     [_ "\u2205"]))
 
+; NOTE always uses unicode characters for black pieces; looks better in a terminal
 (provide piece-location-repr)
 (: piece-location-repr (-> PieceLocation String))
 (define (piece-location-repr piece-location)
   (match piece-location
-    [(cons piece loc) (string-append (piece-code-terminal piece) " @ " (location-repr loc))]))
+    [(cons piece loc) (string-append (piece-code piece 'black) " @ " (location-repr loc))]))
 
 (provide location-repr)
 (: location-repr (-> location String))
