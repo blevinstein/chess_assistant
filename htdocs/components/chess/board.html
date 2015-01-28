@@ -40,16 +40,21 @@
       position: [ ],
       N: 8,
 
-      // convenient equality function for locations
+      // convenience function: equality for locations
       eq: function(loca, locb) {
         return loca[0] == locb[0] && loca[1] == locb[1];
       },
 
-      getColor: function (file, rank) {
-        // if [file,rank] in lit, return green
-        for (var i = 0; i < this.lit.length; i++) {
-          if (this.lit[i][0] == file && this.lit[i][1] == rank) { return "#0f0"; }
+      // convenience function: array contains for locations
+      cont: function(arr, loc) {
+        for (var i = 0; i < arr.length; i++) {
+          if (this.eq(arr[i], loc)) { return true; }
         }
+        return false;
+      },
+
+      getColor: function (file, rank) {
+        if (this.cont(this.lit, [file, rank])) { return "#0f0"; }
         // else return black/white checkerboard
         if ((file + rank) % 2 == 0) {
           return "#bbb";
