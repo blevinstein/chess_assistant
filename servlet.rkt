@@ -52,7 +52,7 @@
 
 (define (new-board req)
   (log-info "new-board")
-  (render-json (grid->json (new-grid))))
+  (render-json (position->json (new-position))))
 
 ; JSON conversion code
 
@@ -64,7 +64,7 @@
     (match cpl [(list color piece location)
       (hash 'color (~a color)
             'piece (~a piece)
-            'loc (~a location)
+            'loc (location->json location)
             `repr (piece-code piece color)
             )])))
 
@@ -100,6 +100,17 @@
   (define (xfm-row row) (map xfm-cp row))
   (map xfm-row json))
 
+(provide json->position)
+(define (json->position json)
+  (for/list ([elem json])
+    (match elem
+      [(hash-table ('color c) ('piece p) ('loc l) (k v) ...)
+       (list (string->symbol c) (string->symbol p) (json->location l))])))
+
+(provide json->location)
+(define (json->location json)
+  (match json [(list f r) (location f r)]))
+
 ; EXPERIMENTAL below this line
 
 (define (moves req)
@@ -107,11 +118,9 @@
   (log-info "moves ~a" post-data)
   (define parsed-req (bytes->jsexpr post-data))
   ; params
-  (define position (grid->position (json->grid (hash-ref parsed-req 'grid))))
-  (define rank (string->number (hash-ref parsed-req 'rank)))
-  (define file (string->number (hash-ref parsed-req 'file)))
+  (define position (json->position (hash-ref parsed-req 'position)))
+  (define source (json->location (hash-ref parsed-req 'loc)))
 
-  (define source (location file rank))
   (with-handlers
     ([exn:fail? (lambda (s) (log-error "moves error ~a" s) (render-error s))])
     (render-json (move->json (possible-moves position source)))))

@@ -19,14 +19,14 @@
     </style>
     <core-xhr id="xhr"></core-xhr>
     <table>
-      <template repeat="{{ rank in range(grid.length) }}">
+      <template repeat="{{ rank in range(N) }}">
         <tr>
-          <template repeat="{{ file in range(grid[rank].length) }}">
+          <template repeat="{{ file in range(N) }}">
           <td style="background-color:{{ getColor(file, rank) }}"
               rank="{{rank}}"
               file="{{file}}"
               on-click="{{handleClick}}">
-            {{ grid[rank][file].repr }}
+            {{ positionRef(position, [file, rank]).repr }}
             </td>
           </template>
         </tr>
@@ -36,9 +36,14 @@
   <script>
 
     Polymer({
-      grid: [ ], // TODO rm
       lit: [ ], // TODO generalize (layers?)
       position: [ ],
+      N: 8,
+
+      // convenient equality function for locations
+      eq: function(loca, locb) {
+        return loca[0] == locb[0] && loca[1] == locb[1];
+      },
 
       getColor: function (file, rank) {
         // if [file,rank] in lit, return green
@@ -53,19 +58,15 @@
         }
       },
 
-      // TODO rm
-      setGrid: function (newGrid) {
-        this.grid = newGrid;
-      },
-
       setPosition: function(newPosition) {
         // TODO re-examine how this updates, try to trigger refresh
         this.position = newPosition;
       },
 
       positionRef: function(position, loc) {
+        var self = this;
         return position.filter(function (elem) {
-            return elem.loc == loc;
+            return self.eq(elem.loc, loc);
         })[0];
       },
 
@@ -82,38 +83,47 @@
 
         // get a new board
         this.$.xhr.request({url: "/new-board", callback: function (resp) {
-            //self.setPosition(JSON.parse(resp));
-            self.setGrid(JSON.parse(resp));
+            self.setPosition(JSON.parse(resp));
           }});
       },
 
-      // TODO change to use position
       refresh: function () {
         var self = this;
-        // HACK deletes and replaces grid to trigger refresh
-        var tmp = self.grid;
-        self.grid = [];
-        setTimeout(function () { self.grid = tmp; }, 1);
+        // HACK changes N to force update
+        self.N = 0;
+        setTimeout(function () { self.N = 8; }, 1);
       },
 
       handleClick: function(e) {
-        var self = this;
-        // HACK check that this is an element we care about
+        // check that this is an element we care about
         if (e.toElement.tagName != "TD") { return; }
 
+        var loc = [parseInt(e.toElement.getAttribute("file")),
+            parseInt(e.toElement.getAttribute("rank"))];
+        this.getMoves(loc);
+      },
+
+      getMoves: function(loc) {
+        var self = this;
+
         var params = {
-          rank: e.toElement.getAttribute("rank"),
-          file: e.toElement.getAttribute("file"),
-          grid: this.grid
+          loc: loc,
+          position: this.position
         };
 
-        // TODO only send request if square is not empty
+        if (this.positionRef(this.position, params.loc) == null) {
+          return; // square is empty
+        }
+
         this.$.xhr.request({
           body: JSON.stringify(params),
           method: "post",
           url: "/moves",
           callback: function (resp) {
+            // check for exception dumps from server
             if (resp[0] == "#") { console.log(resp); return; }
+
+            // lit = the destinations of all moves
             self.lit = [];
             JSON.parse(resp).forEach(function (move) {
                 self.lit.push(move[1]);
