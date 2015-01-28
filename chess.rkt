@@ -106,10 +106,11 @@
   (location (char->file (string-ref str 0))
             (char->rank (string-ref str 1))))
 
-; creates a new move from a string representation
 ; TODO promotions
 ; TODO castling
 ; TODO en passant
+
+; creates a new move from a string representation
 (provide new-move)
 (: new-move (-> Position Symbol String Move))
 (define (new-move position color str)
@@ -177,9 +178,9 @@
       (list (infer-move 'P (parse-loc file rank) #:hint (hint-pred hint)))]
     [(list piece hint file rank) #:when (and (is-piece? piece) (is-hint? hint))
       (list (infer-move (char->piece piece) (parse-loc file rank) #:hint (hint-pred hint)))]
-    [(list file rank promote) #:when (is-piece? promote)
+    [(list file rank #\= promote) #:when (is-piece? promote)
       (list (infer-move 'P (parse-loc file rank) #:promote (char->piece promote)))]
-    [(list hint file rank promote) #:when (and (is-hint? hint) (is-piece? promote))
+    [(list hint file rank #\= promote) #:when (and (is-hint? hint) (is-piece? promote))
       (list (infer-move 'P (parse-loc file rank)
         #:hint (hint-pred hint) #:promote (char->piece promote)))]
     [(list piece hfile hrank file rank)
