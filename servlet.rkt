@@ -64,6 +64,7 @@
     (match cpl [(list color piece location)
       (hash 'color (~a color)
             'piece (~a piece)
+            'loc (~a location)
             `repr (piece-code piece color)
             )])))
 

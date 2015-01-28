@@ -34,9 +34,11 @@
     </table>
   </template>
   <script>
+
     Polymer({
-      grid: [ ],
-      lit: [ ],
+      grid: [ ], // TODO rm
+      lit: [ ], // TODO generalize (layers?)
+      position: [ ],
 
       getColor: function (file, rank) {
         // if [file,rank] in lit, return green
@@ -51,8 +53,20 @@
         }
       },
 
+      // TODO rm
       setGrid: function (newGrid) {
         this.grid = newGrid;
+      },
+
+      setPosition: function(newPosition) {
+        // TODO re-examine how this updates, try to trigger refresh
+        this.position = newPosition;
+      },
+
+      positionRef: function(position, loc) {
+        return position.filter(function (elem) {
+            return elem.loc == loc;
+        })[0];
       },
 
       range: function (n) {
@@ -68,13 +82,15 @@
 
         // get a new board
         this.$.xhr.request({url: "/new-board", callback: function (resp) {
+            //self.setPosition(JSON.parse(resp));
             self.setGrid(JSON.parse(resp));
           }});
       },
 
+      // TODO change to use position
       refresh: function () {
         var self = this;
-        // HACK
+        // HACK deletes and replaces grid to trigger refresh
         var tmp = self.grid;
         self.grid = [];
         setTimeout(function () { self.grid = tmp; }, 1);
@@ -82,7 +98,8 @@
 
       handleClick: function(e) {
         var self = this;
-        if (e.toElement.getAttribute("rank") == null) { return; }
+        // HACK check that this is an element we care about
+        if (e.toElement.tagName != "TD") { return; }
 
         var params = {
           rank: e.toElement.getAttribute("rank"),
@@ -90,6 +107,7 @@
           grid: this.grid
         };
 
+        // TODO only send request if square is not empty
         this.$.xhr.request({
           body: JSON.stringify(params),
           method: "post",
