@@ -89,6 +89,18 @@
   (define (xfm-mv move-part) (match move-part [(move s d) (map location->json (list s d))]))
   (map xfm-mv mv))
 
+(define (moves req)
+  (define post-data (request-post-data/raw req))
+  (log-info "moves ~a" post-data)
+  (define parsed-req (bytes->jsexpr post-data))
+  ; params
+  (define position (json->position (hash-ref parsed-req 'position)))
+  (define source (json->location (hash-ref parsed-req 'loc)))
+
+  (with-handlers
+    ([exn:fail? (lambda (s) (log-error "moves error ~a" s) (render-error s))])
+    (render-json (move->json (possible-moves position source)))))
+
 ; json->*
 
 (provide json->grid)
@@ -112,18 +124,6 @@
   (match json [(list f r) (location f r)]))
 
 ; EXPERIMENTAL below this line
-
-(define (moves req)
-  (define post-data (request-post-data/raw req))
-  (log-info "moves ~a" post-data)
-  (define parsed-req (bytes->jsexpr post-data))
-  ; params
-  (define position (json->position (hash-ref parsed-req 'position)))
-  (define source (json->location (hash-ref parsed-req 'loc)))
-
-  (with-handlers
-    ([exn:fail? (lambda (s) (log-error "moves error ~a" s) (render-error s))])
-    (render-json (move->json (possible-moves position source)))))
 
 ; To execute main: racket servlet.rkt .
 (when (vector-member "." (current-command-line-arguments)) (main))
