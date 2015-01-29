@@ -240,6 +240,11 @@
       ((piece-move-func (cdr color-piece)) position loc)]
     [else (raise-user-error 'no-piece-at-location)]))
 
+(provide valid-moves)
+(: valid-moves (-> Position location (Listof move)))
+(define (valid-moves position loc)
+  (filter (lambda: ([mv : move]) (valid-move position mv)) (possible-moves position loc)))
+
 ; returns the appropriate function for calculating a piece's moves
 (: piece-move-func (-> Symbol (-> Position location (Listof move))))
 (define (piece-move-func piece)
