@@ -3,22 +3,14 @@
 (require json)
 (require web-server/dispatch)
 (require web-server/servlet)
-(require web-server/servlet-env)
 (require web-server/templates)
 
 (require "chess.rkt")
 
 ; TODO rpc get-hud
 
-(provide main)
-(define (main)
-  (serve/servlet start
-    #:launch-browser? #f
-    #:port 8000
-    #:server-root-path (current-directory)
-    #:servlet-regexp #rx""))
-
 ; entry point for serving a request
+(provide start)
 (define (start req)
   (log-info "request for ~a" (url->string (request-uri req)))
   (handle-request req))
@@ -138,9 +130,3 @@
 (provide json->location)
 (define (json->location json)
   (match json [(list f r) (location f r)]))
-
-; EXPERIMENTAL below this line
-
-; To execute main: racket servlet.rkt .
-(when (vector-member "." (current-command-line-arguments)) (main))
-
