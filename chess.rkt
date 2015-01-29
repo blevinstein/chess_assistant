@@ -108,7 +108,6 @@
 
 ; TODO promotions
 ; TODO castling
-; TODO en passant
 
 ; creates a new move from a string representation
 (provide new-move)
@@ -231,6 +230,7 @@
     [else (raise-result-error 'position-ref! "color-piece" optional-color-piece)]))
 
 ; returns possible moves, given a source location
+; TODO add castling
 (provide possible-moves)
 (: possible-moves (-> Position location (Listof move)))
 (define (possible-moves position loc)
@@ -317,9 +317,9 @@
   (: move-to (-> location move))
   (define (move-to space) (move source space))
   (define plus-one (add-location source direction))
-  (define plus-two (add-location-list source direction direction))
-  (define left (add-location-list source direction (location -1 0)))
-  (define right (add-location-list source direction (location 1 0)))
+  (define plus-two (add-location source direction direction))
+  (define left (add-location source direction (location -1 0)))
+  (define right (add-location source direction (location 1 0)))
   (define: optional-moves : (Listof (Option move))
     (list
       (if (open? plus-one) (move-to plus-one) #f)
@@ -336,19 +336,13 @@
       (>= file 0) (< file 8))]))
 
 ; TODO combine with add-location
-(provide add-location-list)
-(: add-location-list (-> location * location))
-(define (add-location-list . location-list)
-  (for/fold ([sum (location 0 0)]) ([loc location-list])
-    (add-location loc sum)))
-
-; adds two locations together like vectors
 (provide add-location)
-(: add-location (-> location location location))
-(define (add-location a b)
-  (location
-    (+ (location-file a) (location-file b))
-    (+ (location-rank a) (location-rank b))))
+(: add-location (-> location * location))
+(define (add-location . location-list)
+  (for/fold ([sum (location 0 0)]) ([loc location-list])
+    (location
+      (+ (location-file sum) (location-file loc))
+      (+ (location-rank sum) (location-rank loc)))))
 
 ; create a new position
 (provide new-position)
@@ -401,7 +395,6 @@
       ) (Listof (Option ColorPiece)))))
 
 ; makes a move and returns the new position
-; NOTE does not check if the move is valid
 ; NOTE does not support en passant
 (provide make-move)
 (: make-move (-> Position move Position))
