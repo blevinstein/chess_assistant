@@ -1,0 +1,22 @@
+{
+  "name": "chess_assistant",
+  "version": "0.0.0",
+  "homepage": "https://github.com/blevinstein/chess_assistant",
+  "authors": [
+    "Brian Levinstein <blevinstein@gmail.com>"
+  ],
+  "main": "chess.rkt",
+  "license": "TBD",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "polymer": "Polymer/polymer#~0.5.4",
+    "core-ajax": "Polymer/core-ajax#~0.5.4"
+  }
+}
