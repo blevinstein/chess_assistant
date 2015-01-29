@@ -65,7 +65,7 @@
 
   (with-handlers
     ([exn:fail? (lambda (e) (log-error "moves error ~a" e) (render-error e))])
-    (render-json (move->json (valid-moves position source)))))
+    (render-json (move->json (possible-moves position source)))))
 
 (define (try-move req)
   (define parsed-req (bytes->jsexpr (request-post-data/raw req)))
