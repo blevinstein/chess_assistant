@@ -35,26 +35,35 @@
   </template>
   <script>
 
+    // convenience function: equality for locations
+    window.eq = function(loc1, loc2) {
+      return loc1[0] == loc2[0] && loc1[1] == loc2[1];
+    };
+
+    // convenience function: array contains for locations
+    window.cont = function(arr, loc) {
+      for (var i = 0; i < arr.length; i++) {
+        if (eq(arr[i], loc)) { return true; }
+      }
+      return false;
+    },
+
+    // utility to create callbacks
+    window.cb = function(self, handler) {
+      return function (resp) {
+        self.errorCheck(resp);
+        handler.call(self, resp);
+      };
+    },
+
     Polymer({
       lit: [ ],
       position: [ ],
       N: 8,
-
-      // convenience function: equality for locations
-      eq: function(loca, locb) {
-        return loca[0] == locb[0] && loca[1] == locb[1];
-      },
-
-      // convenience function: array contains for locations
-      cont: function(arr, loc) {
-        for (var i = 0; i < arr.length; i++) {
-          if (this.eq(arr[i], loc)) { return true; }
-        }
-        return false;
-      },
+      lastClick: null,
 
       getColor: function (file, rank) {
-        if (this.cont(this.lit, [file, rank])) { return "#0f0"; }
+        if (cont(this.lit, [file, rank])) { return "#0f0"; }
         // else return black/white checkerboard
         if ((file + rank) % 2 == 0) {
           return "#bbb";
@@ -67,11 +76,13 @@
         // TODO re-examine how this updates, try to trigger refresh
         this.position = newPosition;
       },
+      setPositionCallback: function(resp) {
+        this.setPosition(JSON.parse(resp));
+      },
 
       positionRef: function(position, loc) {
-        var self = this;
         return position.filter(function (elem) {
-            return self.eq(elem.loc, loc);
+            return eq(elem.loc, loc);
         })[0];
       },
 
@@ -87,9 +98,23 @@
         var self = this;
 
         // get a new board
-        this.$.xhr.request({url: "/new-board", callback: function (resp) {
-            self.setPosition(JSON.parse(resp));
-          }});
+        this.$.xhr.request({url: "/new-board", callback: cb(this, this.setPositionCallback)});
+      },
+
+      makeMove: function (source, dest) {
+        var self = this;
+
+        var params = {
+          position: this.position,
+          source: source,
+          dest: dest
+        };
+
+        this.$.xhr.request({
+          body: JSON.stringify(params),
+          callback: cb(this, this.setPositionCallback),
+          method: "post",
+          url: "/try-move"});
       },
 
       refresh: function () {
@@ -100,12 +125,46 @@
       },
 
       handleClick: function(e) {
-        // check that this is an element we care about
-        if (e.toElement.tagName != "TD") { return; }
+        if (e.toElement.tagName != "TD") {
+          this.lastClick = null;
+          return;
+        }
 
-        var loc = [parseInt(e.toElement.getAttribute("file")),
+        // get click location
+        var click = [parseInt(e.toElement.getAttribute("file")),
             parseInt(e.toElement.getAttribute("rank"))];
-        this.getMoves(loc);
+
+        // if we have 2 locations, try to make a move
+        // TODO replace with is-valid check
+        if (this.lastClick != null && cont(this.lit, click)) {
+          this.makeMove(this.lastClick, click);
+          this.lastClick = null;
+          this.unlight();
+        } else { // else get possible moves from here
+          this.getMoves(click);
+          this.lastClick = click;
+        }
+      },
+
+      // checks for exception dumps in server responses
+      // TODO revisit, consider logging not throwing
+      errorCheck: function(resp) {
+        if (resp[0] == "#") { throw resp; }
+      },
+
+      light: function (locations) {
+        this.lit = locations;
+        this.refresh();
+      },
+      unlight: function () {
+        this.light([]);
+      },
+
+      lightDestinations: function(moves) {
+        this.light(moves.map(function (move) { return move[1]; }));
+      },
+      lightDestinationsCallback: function(resp) {
+        this.lightDestinations(JSON.parse(resp));
       },
 
       getMoves: function(loc) {
@@ -116,25 +175,17 @@
           position: this.position
         };
 
+        // TODO add is-loading animation
+        // TODO replace with is-valid rpc
         if (this.positionRef(this.position, params.loc) == null) {
           return; // square is empty
         }
 
         this.$.xhr.request({
           body: JSON.stringify(params),
+          callback: cb(this, this.lightDestinationsCallback),
           method: "post",
-          url: "/moves",
-          callback: function (resp) {
-            // check for exception dumps from server
-            if (resp[0] == "#") { console.log(resp); return; }
-
-            // lit = the destinations of all moves
-            self.lit = [];
-            JSON.parse(resp).forEach(function (move) {
-                self.lit.push(move[1]);
-              });
-            self.refresh();
-          }});
+          url: "/moves"});
       },
     });
   </script>
