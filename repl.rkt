@@ -78,8 +78,6 @@
 ; TODO refactor print code
 ; http://docs.racket-lang.org/reference/Printer_Extension.html#%28def._%28%28lib._racket%2Fprivate%2Fbase..rkt%29._gen~3acustom-write%29%29
 
-; TODO move-repr
-;
 ; TODO store history of moves, allow replay/undo
 ;
 ; TODO en passant

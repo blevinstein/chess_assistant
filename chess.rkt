@@ -340,7 +340,6 @@
       (>= rank 0) (< rank 8)
       (>= file 0) (< file 8))]))
 
-; TODO combine with add-location
 (provide add-location)
 (: add-location (-> location * location))
 (define (add-location . location-list)
