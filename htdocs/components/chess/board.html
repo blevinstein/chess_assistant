@@ -9,12 +9,24 @@
         border-spacing: 0;
       }
       tr {
-        height: 80px;
+        height: 100px;
       }
       td {
         text-align: center;
         font-size: 60px;
-        width: 80px;
+        width: 100px;
+      }
+      .threatCount {
+        font: bold 12px sans-serif;
+      }
+      .bubble {
+        background-color: white;
+        border: 1px solid;
+        border-radius: 10px;
+        display: inline-block;
+        line-height: 16px;
+        height: 16px;
+        width: 16px;
       }
     </style>
     <core-xhr id="xhr"></core-xhr>
@@ -22,11 +34,21 @@
       <template repeat="{{ rank in range(N) }}">
         <tr>
           <template repeat="{{ file in range(N) }}">
-          <td style="background-color:{{ getColor(file, rank) }}"
-              rank="{{rank}}"
-              file="{{file}}"
-              on-click="{{handleClick}}">
-            {{ positionRef(position, [file, rank]).repr }}
+            <td style="background-color:{{ getColor(file, rank) }}"
+                rank="{{rank}}"
+                file="{{file}}"
+                on-click="{{handleClick}}">
+              <template bind="{{positionRef(position, [file, rank]) as data}}">
+                <template if="{{data}}">
+                  {{data.repr}}
+                  <div class="threatCount"
+                      style="{{ threatStyle(data.threatCount) }}">
+                    <div class="bubble">
+                      {{data.threatCount}}
+                    </div>
+                  </div>
+                </template>
+              </template>
             </td>
           </template>
         </tr>
@@ -66,9 +88,19 @@
         if (cont(this.lit, [file, rank])) { return "#0f0"; }
         // else return black/white checkerboard
         if ((file + rank) % 2 == 0) {
-          return "#bbb";
+          return "#aaa";
         } else {
-          return "#777";
+          return "#666";
+        }
+      },
+
+      threatStyle: function (threatCount) {
+        if (threatCount > 0) {
+          return "color: green";
+        } else if (threatCount < 0) {
+          return "color: red";
+        } else {
+          return "color: #f90";
         }
       },
 

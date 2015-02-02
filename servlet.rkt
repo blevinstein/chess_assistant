@@ -78,6 +78,7 @@
 
 ; *->json
 
+; TODO include empty squares in position
 (provide position->json)
 (define (position->json position)
   (for/list ([cpl position])
@@ -86,6 +87,7 @@
             'piece (~a piece)
             'loc (location->json location)
             `repr (piece-code piece color)
+            'threatCount (threat-count position location)
             )])))
 
 (provide grid->json)
