@@ -489,6 +489,13 @@
     (length (defenders position loc))
     (length (attackers position loc))))
 
+(provide overloaded-defender?)
+(: overloaded-defender? (-> Position location Boolean))
+(define (overloaded-defender? position loc)
+  (< 1 (length
+    (filter (lambda: ([loc : location]) (>= 0 (threat-count position loc)))
+      (defending position loc)))))
+
 ; defines the pieces on the back row
 (: back-row (Listof Symbol))
 (define back-row

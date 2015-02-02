@@ -17,6 +17,7 @@
   ],
   "dependencies": {
     "polymer": "Polymer/polymer#~0.5.4",
-    "core-ajax": "Polymer/core-ajax#~0.5.4"
+    "core-ajax": "Polymer/core-ajax#~0.5.4",
+    "core-icon": "Polymer/core-icon#~0.5.4"
   }
 }

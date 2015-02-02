@@ -86,6 +86,7 @@
             'loc (location->json location)
             `repr (piece-code piece color)
             'threatCount (threat-count position location)
+            'overloadedDefender (overloaded-defender? position location)
             )])))
 
 (provide grid->json)
