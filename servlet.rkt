@@ -7,8 +7,6 @@
 
 (require "chess.rkt")
 
-; TODO rpc get-hud
-
 ; entry point for serving a request
 (provide start)
 (define (start req)

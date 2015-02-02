@@ -179,7 +179,6 @@
       },
 
       // checks for exception dumps in server responses
-      // TODO revisit, consider logging not throwing
       errorCheck: function(resp) {
         if (resp[0] == "#") { throw resp; }
       },
@@ -207,8 +206,6 @@
           position: this.position
         };
 
-        // TODO add is-loading animation
-        // TODO replace with is-valid rpc
         if (this.positionRef(this.position, params.loc) == null) {
           return; // square is empty
         }
