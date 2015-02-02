@@ -21,6 +21,7 @@
         font-size: 50px;
         height: 50px;
         line-height: 50px;
+        pointer-events: none;
       }
       td:hover .piece {
         color: yellow;
@@ -46,8 +47,8 @@
               <template bind="{{positionRef(position, [file, rank]) as data}}">
                 <template if="{{data}}">
                   <div class="bubble" hidden?="{{!data.overloadedDefender}}">
-                    <core-icon icon="warning"
-                        style="color: red; width: 20px; height: 20px">
+                    <core-icon icon="warning" title="Overloaded Defender"
+                        style="color: red; width: 16px; height: 18px">
                     </core-icon>
                   </div>
                   <div class="piece">{{data.repr}}</div>
