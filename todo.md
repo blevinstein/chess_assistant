@@ -1,6 +1,11 @@
 TODO
 ====
 
+- servlet
+  - replace table with svg
+  - add attacking/defending/attackers/defenders
+  - persist history
+
 - refactor json conversion code
 
 - rider-shadow
@@ -8,7 +13,6 @@ TODO
   - skewer
   - lance
   - hidden attack
-- overloaded defender
 - attacked by lower value piece
 
 - pawn promotion
