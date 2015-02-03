@@ -17,6 +17,9 @@
       svg g.square:hover text.piece {
         fill: yellow;
       }
+      g.overlay * {
+        pointer-events: none;
+      }
     </style>
     <core-xhr id="xhr"></core-xhr>
     <svg width="{{8 * D + 50}}" height="{{8 * D + 50}}">
@@ -30,9 +33,11 @@
           {{rankStr(i)}}
         </text>
       </template>
+      <!-- board -->
       <g transform="translate(50, 50)">
         <template repeat="{{ file in range(N) }}">
           <template repeat="{{ rank in range(N) }}">
+            <!-- square -->
             <g transform="translate({{file * D}}, {{(N-1 - rank) * D}})" class="square">
               <!-- background -->
               <rect width="{{D}}"
@@ -73,6 +78,12 @@
             </g>
           </template>
         </template>
+        <!-- overlay: moves -->
+        <template repeat="{{ loc in lit }}">
+          <g class="overlay" transform="translate({{loc[0] * D}}, {{(N-1 - loc[1]) * D}})">
+            <rect width="{{D}}" height="{{D}}" fill="yellow" opacity="0.5" />
+          </g>
+        </template>
       </g>
     </svg>
   </template>
@@ -108,8 +119,6 @@
       lastClick: null,
 
       getBackground: function (file, rank) {
-        if (cont(this.lit, [file, rank])) { return "#0f0"; }
-        // else return black/white checkerboard
         if ((file + rank) % 2 == 0) {
           return "#666";
         } else {
@@ -141,10 +150,11 @@
           this.grid[i] = [];
           for (var j = 0; j < this.N; j++) {
             this.grid[i][j] = this.positionRef(newPosition, [i, j]) || [];
+            this.grid[i][j].background = this.getBackground(i, j);
+            this.grid[i][j].flagStr = this.getFlags(this.grid[i][j]);
           }
         }
         this.position = newPosition;
-        this.refresh();
       },
       setPositionCallback: function(resp) {
         this.setPosition(JSON.parse(resp));
@@ -187,16 +197,6 @@
           url: "/try-move"});
       },
 
-      refresh: function () {
-        for (var i = 0; i < this.N; i++) {
-          for (var j = 0; j < this.N; j++) {
-            this.grid[i][j] = this.grid[i][j] || [];
-            this.grid[i][j].background = this.getBackground(i, j);
-            this.grid[i][j].flagStr = this.getFlags(this.grid[i][j]);
-          }
-        }
-      },
-
       getFlags: function (data) {
         var flags = [];
         if (data.overloadedDefender) {
@@ -235,7 +235,6 @@
 
       light: function (locations) {
         this.lit = locations;
-        this.refresh();
       },
       unlight: function () {
         this.light([]);

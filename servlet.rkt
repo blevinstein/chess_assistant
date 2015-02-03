@@ -48,7 +48,7 @@
 
 (define (moves req)
   (define parsed-req (bytes->jsexpr (request-post-data/raw req)))
-  (log-info "moves ~a" parsed-req)
+  (log-info "moves")
   ; params
   (define position (json->position (hash-ref parsed-req 'position)))
   (define source (json->location (hash-ref parsed-req 'loc)))
@@ -88,6 +88,10 @@
             'threatCount (threat-count position loc)
             'overloadedDefender (overloaded-defender? position loc)
             'attackedByLowerValue #f ; TODO fix
+            'attackers (map location->json (attackers position loc))
+            'defenders (map location->json (defenders position loc))
+            'attacking (map location->json (attacking position loc))
+            'defending (map location->json (defending position loc))
             ;'attackedByLowerValue (attacked-by-lower-value? position loc)
             )])))
 
