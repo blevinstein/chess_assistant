@@ -496,6 +496,19 @@
     (filter (lambda: ([loc : location]) (>= 0 (threat-count position loc)))
       (defending position loc)))))
 
+(provide attacked-by-lower-value?)
+(: attacked-by-lower-value? (-> Position location Boolean))
+(define (attacked-by-lower-value? position target)
+  (define my-value
+    (match (position-ref position target)
+      [(cons _ piece) (piece-value piece)]))
+  (: lower-value? (-> location Boolean))
+  (define (lower-value? loc)
+    (match (position-ref position loc)
+      [(cons _ piece) (< (piece-value piece) my-value)]))
+  (< 1 (length
+    (filter lower-value? (attackers position target)))))
+
 ; defines the pieces on the back row
 (: back-row (Listof Symbol))
 (define back-row

@@ -61,9 +61,9 @@
                     </g>
                   </template>
                   <!-- flags -->
-                  <template if="{{data.overloadedDefender}}">
+                  <template if="{{data.flagStr.length > 0}}">
                     <g transform="translate({{0.2 * D}}, {{0.2 * D}})">
-                      <title>Overloaded Defender</title>
+                    <title>{{data.flagStr}}</title>
                       <circle r="10" fill="white" />
                       <text fill="red">!</text>
                     </g>
@@ -192,8 +192,20 @@
           for (var j = 0; j < this.N; j++) {
             this.grid[i][j] = this.grid[i][j] || [];
             this.grid[i][j].background = this.getBackground(i, j);
+            this.grid[i][j].flagStr = this.getFlags(this.grid[i][j]);
           }
         }
+        console.log(this.grid);
+      },
+
+      getFlags: function (data) {
+        var flags = [];
+        if (data.overloadedDefender) {
+          flags.push('Overloaded defender');
+        } else if (data.attackedByLowerValue) {
+          flags.push('Attacked by lower value');
+        }
+        return flags.join("\n");
       },
 
       handleClick: function(e, detail, sender) {
