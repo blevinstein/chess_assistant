@@ -37,12 +37,12 @@
               <!-- background -->
               <rect width="{{D}}"
                     height="{{D}}"
-                    fill="{{getColor(file, rank)}}"
+                    fill="{{grid[file][rank].background}}"
                     on-click="{{handleClick}}"
                     data-clickable="true"
                     data-file="{{file}}"
                     data-rank="{{rank}}" />
-              <template bind="{{positionRef(position, [file, rank]) as data}}">
+              <template bind="{{grid[file][rank] as data}}">
                 <template if="{{data}}">
                   <!-- piece -->
                   <text x="{{0.5 * D}}"
@@ -52,12 +52,14 @@
                     {{data.repr}}
                   </text>
                   <!-- threat count -->
-                  <g transform="translate({{0.8 * D}}, {{0.8 * D}})">
-                    <circle r="10" fill="{{threatColor(data.threatCount)}}" />
-                    <text fill="white">
-                      {{data.threatCount}}
-                    </text>
-                  </g>
+                  <template if="{{data.piece}}">
+                    <g transform="translate({{0.8 * D}}, {{0.8 * D}})">
+                      <circle r="10" fill="{{threatColor(data.threatCount)}}" />
+                      <text fill="white">
+                        {{data.threatCount}}
+                      </text>
+                    </g>
+                  </template>
                   <!-- flags -->
                   <template if="{{data.overloadedDefender}}">
                     <g transform="translate({{0.2 * D}}, {{0.2 * D}})">
@@ -98,13 +100,14 @@
     },
 
     Polymer({
-      lit: [ ],
-      position: [ ],
+      lit: [],
+      grid: [],
+      position: [],
       N: 8,
       D: 100, // width of square
       lastClick: null,
 
-      getColor: function (file, rank) {
+      getBackground: function (file, rank) {
         if (cont(this.lit, [file, rank])) { return "#0f0"; }
         // else return black/white checkerboard
         if ((file + rank) % 2 == 0) {
@@ -133,8 +136,15 @@
       },
 
       setPosition: function(newPosition) {
-        // TODO re-examine how this updates, try to trigger refresh
+        this.grid = [];
+        for (var i = 0; i < this.N; i++) {
+          this.grid[i] = [];
+          for (var j = 0; j < this.N; j++) {
+            this.grid[i][j] = this.positionRef(newPosition, [i, j]) || [];
+          }
+        }
         this.position = newPosition;
+        this.refresh();
       },
       setPositionCallback: function(resp) {
         this.setPosition(JSON.parse(resp));
@@ -178,10 +188,12 @@
       },
 
       refresh: function () {
-        var self = this;
-        // HACK changes N to force update
-        self.N = 0;
-        setTimeout(function () { self.N = 8; }, 1);
+        for (var i = 0; i < this.N; i++) {
+          for (var j = 0; j < this.N; j++) {
+            this.grid[i][j] = this.grid[i][j] || [];
+            this.grid[i][j].background = this.getBackground(i, j);
+          }
+        }
       },
 
       handleClick: function(e, detail, sender) {
@@ -236,7 +248,7 @@
           position: this.position
         };
 
-        if (this.positionRef(this.position, params.loc) == null) {
+        if (this.grid[loc[0]][loc[1]] == null) {
           return; // square is empty
         }
 
