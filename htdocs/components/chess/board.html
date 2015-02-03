@@ -5,37 +5,6 @@
 <polymer-element name="chess-board">
   <template>
     <style>
-      table {
-        border: 5px solid black;
-        border-spacing: 0;
-        font: 14 sans-serif;
-      }
-      tr {
-        height: 100px;
-      }
-      td {
-        text-align: center;
-        width: 100px;
-      }
-      .piece {
-        font-size: 50px;
-        height: 50px;
-        line-height: 50px;
-        pointer-events: none;
-      }
-      td:hover .piece {
-        color: yellow;
-      }
-      .bubble {
-        background-color: white;
-        border: 1px solid;
-        border-radius: 10px;
-        display: inline-block;
-        line-height: 16px;
-        min-height: 16px;
-        min-width: 16px;
-        padding: 2px;
-      }
       svg {
         border: 5px solid black;
       }
@@ -43,74 +12,67 @@
         text-anchor: middle;
         alignment-baseline: central;
         pointer-events: none;
+        font-family: sans-serif;
+      }
+      svg g.square:hover text.piece {
+        fill: yellow;
       }
     </style>
     <core-xhr id="xhr"></core-xhr>
     <svg width="{{8 * D + 50}}" height="{{8 * D + 50}}">
       <template repeat="{{i in range(N) }}">
         <!-- file labels -->
-        <text x="{{(i + 0.5) * D + 50}}" y="25" style="font-size: {{D * 0.25}}">
+        <text x="{{(i + 0.5) * D + 50}}" y="25" font-size="{{D * 0.25}}">
           {{fileStr(i)}}
         </text>
         <!-- rank labels -->
-        <text x="25" y="{{(7 - i + 0.5) * D + 50}}" style="font-size: {{D * 0.25}}">
+        <text x="25" y="{{(7 - i + 0.5) * D + 50}}" font-size="{{D * 0.25}}">
           {{rankStr(i)}}
         </text>
       </template>
       <g transform="translate(50, 50)">
         <template repeat="{{ file in range(N) }}">
           <template repeat="{{ rank in range(N) }}">
-            <g transform="translate({{file * D}}, {{(N-1 - rank) * D}})">
+            <g transform="translate({{file * D}}, {{(N-1 - rank) * D}})" class="square">
               <!-- background -->
               <rect width="{{D}}"
                     height="{{D}}"
-                    style="fill: {{getColor(file, rank)}}"
+                    fill="{{getColor(file, rank)}}"
                     on-click="{{handleClick}}"
                     data-clickable="true"
                     data-file="{{file}}"
                     data-rank="{{rank}}" />
-              <!-- piece -->
               <template bind="{{positionRef(position, [file, rank]) as data}}">
-                <text x="{{0.5 * D}}"
-                      y="{{0.5 * D}}"
-                      style="font-size: {{D * 0.5}}">
-                  {{data.repr}}
-                </text>
+                <template if="{{data}}">
+                  <!-- piece -->
+                  <text x="{{0.5 * D}}"
+                        y="{{0.5 * D}}"
+                        class="piece"
+                        font-size="{{D * 0.5}}">
+                    {{data.repr}}
+                  </text>
+                  <!-- threat count -->
+                  <g transform="translate({{0.8 * D}}, {{0.8 * D}})">
+                    <circle r="10" fill="{{threatColor(data.threatCount)}}" />
+                    <text fill="white">
+                      {{data.threatCount}}
+                    </text>
+                  </g>
+                  <!-- flags -->
+                  <template if="{{data.overloadedDefender}}">
+                    <g transform="translate({{0.2 * D}}, {{0.2 * D}})">
+                      <title>Overloaded Defender</title>
+                      <circle r="10" fill="white" />
+                      <text fill="red">!</text>
+                    </g>
+                  </template>
+                </template>
               </template>
-              <!-- TODO threat count -->
-              <!-- TODO flags -->
             </g>
           </template>
         </template>
       </g>
     </svg>
-    <table>
-      <template repeat="{{ rank in range(N) }}">
-        <tr>
-          <template repeat="{{ file in range(N) }}">
-            <td style="background-color:{{ getColor(file, rank) }}" data-clickable="true"
-                data-rank="{{rank}}" data-file="{{file}}" on-click="{{handleClick}}">
-              <template bind="{{positionRef(position, [file, rank]) as data}}">
-                <template if="{{data}}">
-                  <div class="bubble" hidden?="{{!data.overloadedDefender}}">
-                    <core-icon icon="warning" title="Overloaded Defender"
-                        style="color: red; width: 16px; height: 18px">
-                    </core-icon>
-                  </div>
-                  <div class="piece">{{data.repr}}</div>
-                  <div class="threatCount"
-                      style="{{ threatStyle(data.threatCount) }}">
-                    <span class="bubble">
-                      {{data.threatCount}}
-                    </span>
-                  </div>
-                </template>
-              </template>
-            </td>
-          </template>
-        </tr>
-      </template>
-    </table>
   </template>
   <script>
 
@@ -160,13 +122,13 @@
         return String.fromCharCode('1'.charCodeAt(0) + rank);
       },
 
-      threatStyle: function (threatCount) {
+      threatColor: function (threatCount) {
         if (threatCount > 0) {
-          return "color: green";
+          return "green";
         } else if (threatCount < 0) {
-          return "color: red";
+          return "red";
         } else {
-          return "color: #f90";
+          return "#f90";
         }
       },
 
