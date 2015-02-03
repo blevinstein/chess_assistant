@@ -29,8 +29,10 @@
     ; shutdown server
     (custodian-shutdown-all cust)
     ; reload servlet.rkt if necessary
-    (dynamic-rerequire "servlet.rkt")
-    (set! start (dynamic-require "servlet.rkt" 'start))
+    (with-handlers
+      ([exn:fail? (lambda (e) (displayln (~a "error ~a" e)))])
+      (dynamic-rerequire "servlet.rkt")
+      (set! start (dynamic-require "servlet.rkt" 'start)))
     (displayln "Restarting server...")
     (loop)))
 
