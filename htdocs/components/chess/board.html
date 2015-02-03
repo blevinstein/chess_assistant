@@ -14,11 +14,20 @@
         pointer-events: none;
         font-family: sans-serif;
       }
-      svg g.square:hover text.piece {
+      g.square:hover text.piece {
         fill: yellow;
       }
       g.overlay * {
         pointer-events: none;
+      }
+      rect.dimmer {
+        -webkit-animation: fadein 3s;
+        fill-opacity: 0.5;
+      }
+
+      @-webkit-keyframes fadein {
+        from {fill-opacity: 0;}
+        to {fill-opacity: 0.5;}
       }
     </style>
     <core-xhr id="xhr"></core-xhr>
@@ -84,6 +93,10 @@
             <rect width="{{D}}" height="{{D}}" fill="yellow" opacity="0.5" />
           </g>
         </template>
+        <!-- loading dimmer -->
+        <template if="{{loading}}">
+          <rect width="{{8 * D}}" height="{{8 * D}}" fill="black" class="dimmer">
+        </template>
       </g>
     </svg>
   </template>
@@ -103,12 +116,17 @@
     },
 
     // utility to create callbacks
+    // NOTE: sets loading flag on 'self' object
     window.cb = function(self, handler) {
+      self.loading = true;
       return function (resp) {
         self.errorCheck(resp);
         handler.call(self, resp);
+        self.loading = false;
       };
     },
+
+    loading = false;
 
     Polymer({
       lit: [],
@@ -117,6 +135,7 @@
       N: 8,
       D: 100, // width of square
       lastClick: null,
+      loading: false,
 
       getBackground: function (file, rank) {
         if ((file + rank) % 2 == 0) {
