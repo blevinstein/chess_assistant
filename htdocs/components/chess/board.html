@@ -36,8 +36,35 @@
         min-width: 16px;
         padding: 2px;
       }
+      svg {
+        border: 5px solid black;
+      }
+      svg text {
+        text-anchor: middle;
+        alignment-baseline: central;
+      }
     </style>
     <core-xhr id="xhr"></core-xhr>
+    <svg width="{{8 * D}}" height="{{8 * D}}">
+      <template repeat="{{ file in range(N) }}">
+        <template repeat="{{ rank in range(N) }}">
+          <!-- square -->
+          <rect x="{{file * D}}"
+                y="{{rank * D}}"
+                width="{{D}}"
+                height="{{D}}"
+                style="fill: {{getColor(file, rank)}}" />
+          <!-- piece -->
+          <template bind="{{positionRef(position, [file, rank]) as data}}">
+            <text x="{{(file + 0.5) * D}}"
+                  y="{{(rank + 0.5) * D}}"
+                  style="font-size: {{D * 0.5}}">
+              {{data.repr}}
+            </text>
+          </template>
+        </template>
+      </template>
+    </svg>
     <table>
       <template repeat="{{ rank in range(N) }}">
         <tr>
@@ -93,6 +120,7 @@
       lit: [ ],
       position: [ ],
       N: 8,
+      D: 100, // width of square
       lastClick: null,
 
       getColor: function (file, rank) {
