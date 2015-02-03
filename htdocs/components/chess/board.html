@@ -45,25 +45,39 @@
       }
     </style>
     <core-xhr id="xhr"></core-xhr>
-    <svg width="{{8 * D}}" height="{{8 * D}}">
-      <template repeat="{{ file in range(N) }}">
-        <template repeat="{{ rank in range(N) }}">
-          <!-- square -->
-          <rect x="{{file * D}}"
-                y="{{rank * D}}"
-                width="{{D}}"
-                height="{{D}}"
-                style="fill: {{getColor(file, rank)}}" />
-          <!-- piece -->
-          <template bind="{{positionRef(position, [file, rank]) as data}}">
-            <text x="{{(file + 0.5) * D}}"
-                  y="{{(rank + 0.5) * D}}"
-                  style="font-size: {{D * 0.5}}">
-              {{data.repr}}
-            </text>
+    <svg width="{{8 * D + 50}}" height="{{8 * D + 50}}">
+      <template repeat="{{i in range(N) }}">
+        <!-- file labels -->
+        <text x="{{(i + 0.5) * D + 50}}" y="25" style="font-size: {{D * 0.25}}">
+          {{fileStr(i)}}
+        </text>
+        <!-- rank labels -->
+        <text x="25" y="{{(7 - i + 0.5) * D + 50}}" style="font-size: {{D * 0.25}}">
+          {{rankStr(i)}}
+        </text>
+      </template>
+      <g transform="translate(50, 50)">
+        <template repeat="{{ file in range(N) }}">
+          <template repeat="{{ rank in range(N) }}">
+            <g transform="translate({{file * D}}, {{(N-1 - rank) * D}})">
+              <!-- background -->
+              <rect width="{{D}}"
+                    height="{{D}}"
+                    style="fill: {{getColor(file, rank)}}" />
+              <!-- piece -->
+              <template bind="{{positionRef(position, [file, rank]) as data}}">
+                <text x="{{0.5 * D}}"
+                      y="{{0.5 * D}}"
+                      style="font-size: {{D * 0.5}}">
+                  {{data.repr}}
+                </text>
+              </template>
+              <!-- TODO threat count -->
+              <!-- TODO flags -->
+            </g>
           </template>
         </template>
-      </template>
+      </g>
     </svg>
     <table>
       <template repeat="{{ rank in range(N) }}">
@@ -131,6 +145,14 @@
         } else {
           return "#666";
         }
+      },
+
+      fileStr: function (file) {
+        return String.fromCharCode('a'.charCodeAt(0) + file);
+      },
+
+      rankStr: function (rank) {
+        return String.fromCharCode('1'.charCodeAt(0) + rank);
       },
 
       threatStyle: function (threatCount) {
