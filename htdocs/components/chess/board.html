@@ -197,16 +197,13 @@
       },
 
       handleClick: function(e, detail, sender) {
-        console.log("handleClick");
         if (sender.dataset.clickable != "true") {
-          console.log('ignore');
           this.lastClick = null;
           return;
         }
 
         // get click location
-        var click = [parseInt(sender.dataset.file),parseInt(sender.dataset.rank)];
-        console.log(click);
+        var click = [parseInt(sender.dataset.file), parseInt(sender.dataset.rank)];
 
         // if we have 2 locations, try to make a move
         // TODO replace with is-valid check
@@ -248,8 +245,9 @@
           position: this.position
         };
 
-        if (this.grid[loc[0]][loc[1]] == null) {
-          return; // square is empty
+        if (this.grid[loc[0]][loc[1]].piece == null) {
+          this.lightDestinations([]);
+          return;
         }
 
         this.$.xhr.request({
