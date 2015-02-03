@@ -2,7 +2,7 @@ TODO
 ====
 
 - servlet
-  - replace table with svg
+  - add ability to rotate board
   - add attacking/defending/attackers/defenders
   - persist history
 
