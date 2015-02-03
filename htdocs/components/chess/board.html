@@ -42,6 +42,7 @@
       svg text {
         text-anchor: middle;
         alignment-baseline: central;
+        pointer-events: none;
       }
     </style>
     <core-xhr id="xhr"></core-xhr>
@@ -63,7 +64,11 @@
               <!-- background -->
               <rect width="{{D}}"
                     height="{{D}}"
-                    style="fill: {{getColor(file, rank)}}" />
+                    style="fill: {{getColor(file, rank)}}"
+                    on-click="{{handleClick}}"
+                    data-clickable="true"
+                    data-file="{{file}}"
+                    data-rank="{{rank}}" />
               <!-- piece -->
               <template bind="{{positionRef(position, [file, rank]) as data}}">
                 <text x="{{0.5 * D}}"
@@ -83,8 +88,8 @@
       <template repeat="{{ rank in range(N) }}">
         <tr>
           <template repeat="{{ file in range(N) }}">
-            <td style="background-color:{{ getColor(file, rank) }}" class="clickable"
-                rank="{{rank}}" file="{{file}}" on-click="{{handleClick}}">
+            <td style="background-color:{{ getColor(file, rank) }}" data-clickable="true"
+                data-rank="{{rank}}" data-file="{{file}}" on-click="{{handleClick}}">
               <template bind="{{positionRef(position, [file, rank]) as data}}">
                 <template if="{{data}}">
                   <div class="bubble" hidden?="{{!data.overloadedDefender}}">
@@ -218,16 +223,16 @@
       },
 
       handleClick: function(e, detail, sender) {
-        console.log('handleClick');
-        if (sender.className != "clickable") {
+        console.log("handleClick");
+        if (sender.dataset.clickable != "true") {
           console.log('ignore');
           this.lastClick = null;
           return;
         }
 
         // get click location
-        var click = [parseInt(sender.getAttribute("file")),
-            parseInt(sender.getAttribute("rank"))];
+        var click = [parseInt(sender.dataset.file),parseInt(sender.dataset.rank)];
+        console.log(click);
 
         // if we have 2 locations, try to make a move
         // TODO replace with is-valid check
