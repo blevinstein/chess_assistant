@@ -93,6 +93,37 @@
             <rect width="{{D}}" height="{{D}}" fill="yellow" opacity="0.5" />
           </g>
         </template>
+        <!-- overlay: local threats -->
+        <template if="{{ selected != null }}">
+          <template bind="{{ grid[selected[0]][selected[1]] as data }}">
+            <g transform="translate({{0.5 * D}}, {{0.5 * D}})">
+              <template repeat="{{ loc in data.attackers }}">
+                <line x1="{{selected[0] * D}}" y1="{{(N-1 - selected[1]) * D}}"
+                      x2="{{loc[0] * D}}" y2="{{(N-1 - loc[1]) * D}}"
+                      stroke="red" stroke-width="5" stroke-dasharray="5, 5">
+                </line>
+              </template>
+              <template repeat="{{ loc in data.defenders }}">
+                <line x1="{{selected[0] * D}}" y1="{{(N-1 - selected[1]) * D}}"
+                      x2="{{loc[0] * D}}" y2="{{(N-1 - loc[1]) * D}}"
+                      stroke="green" stroke-width="5" stroke-dasharray="5, 5">
+                </line>
+              </template>
+              <template repeat="{{ loc in data.attacking }}">
+                <line x1="{{selected[0] * D}}" y1="{{(N-1 - selected[1]) * D}}"
+                      x2="{{loc[0] * D}}" y2="{{(N-1 - loc[1]) * D}}"
+                      stroke="red" stroke-width="5" stroke-linecap="round">
+                </line>
+              </template>
+              <template repeat="{{ loc in data.defending }}">
+                <line x1="{{selected[0] * D}}" y1="{{(N-1 - selected[1]) * D}}"
+                      x2="{{loc[0] * D}}" y2="{{(N-1 - loc[1]) * D}}"
+                      stroke="green" stroke-width="5" stroke-linecap="round">
+                </line>
+              </template>
+            </g>
+          </template>
+        </template>
         <!-- loading dimmer -->
         <template if="{{loading}}">
           <rect width="{{8 * D}}" height="{{8 * D}}" fill="black" class="dimmer">
@@ -134,7 +165,7 @@
       position: [],
       N: 8,
       D: 100, // width of square
-      lastClick: null,
+      selected: null,
       loading: false,
 
       getBackground: function (file, rank) {
@@ -228,7 +259,7 @@
 
       handleClick: function(e, detail, sender) {
         if (sender.dataset.clickable != "true") {
-          this.lastClick = null;
+          this.selected = null;
           return;
         }
 
@@ -237,13 +268,15 @@
 
         // if we have 2 locations, try to make a move
         // TODO replace with is-valid check
-        if (this.lastClick != null && cont(this.lit, click)) {
-          this.makeMove(this.lastClick, click);
-          this.lastClick = null;
+        if (this.selected != null && cont(this.lit, click)) {
+          this.makeMove(this.selected, click);
+          this.selected = null;
           this.unlight();
         } else { // else get possible moves from here
           this.getMoves(click);
-          this.lastClick = click;
+          this.selected = click;
+          console.log(this.selected);
+          console.log(this.grid[this.selected[0]][this.selected[1]]);
         }
       },
 
@@ -252,6 +285,7 @@
         if (resp[0] == "#") { throw resp; }
       },
 
+      // TODO rename moves or refactor
       light: function (locations) {
         this.lit = locations;
       },
