@@ -50,11 +50,7 @@
             <g transform="translate({{file * D}}, {{(N-1 - rank) * D}})" class="square">
               <rect width="{{D}}"
                     height="{{D}}"
-                    fill="{{grid[file][rank].background}}"
-                    on-click="{{handleClick}}"
-                    data-clickable="true"
-                    data-file="{{file}}"
-                    data-rank="{{rank}}" />
+                    fill="{{grid[file][rank].background}}">
             </g>
           </template>
         </template>
@@ -99,6 +95,11 @@
         <template repeat="{{ file in range(N) }}">
           <template repeat="{{ rank in range(N) }}">
             <g transform="translate({{file * D}}, {{(N-1 - rank) * D}})" class="square">
+              <rect width="{{D}}" height="{{D}}" opacity="0"
+                    on-click="{{handleClick}}"
+                    data-clickable="true"
+                    data-file="{{file}}"
+                    data-rank="{{rank}}" />
               <template bind="{{grid[file][rank] as data}}">
                 <template if="{{data}}">
                   <!-- piece -->
