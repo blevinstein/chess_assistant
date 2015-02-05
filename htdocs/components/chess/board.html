@@ -44,11 +44,10 @@
       </template>
       <!-- board -->
       <g transform="translate(50, 50)">
+        <!-- background -->
         <template repeat="{{ file in range(N) }}">
           <template repeat="{{ rank in range(N) }}">
-            <!-- square -->
             <g transform="translate({{file * D}}, {{(N-1 - rank) * D}})" class="square">
-              <!-- background -->
               <rect width="{{D}}"
                     height="{{D}}"
                     fill="{{grid[file][rank].background}}"
@@ -56,6 +55,50 @@
                     data-clickable="true"
                     data-file="{{file}}"
                     data-rank="{{rank}}" />
+            </g>
+          </template>
+        </template>
+        <!-- overlay: moves -->
+        <template repeat="{{ loc in lit }}">
+          <g class="overlay" transform="translate({{loc[0] * D}}, {{(N-1 - loc[1]) * D}})">
+            <rect width="{{D}}" height="{{D}}" fill="yellow" opacity="0.5" />
+          </g>
+        </template>
+        <!-- overlay: local threats -->
+        <template if="{{ selected != null }}">
+          <template bind="{{ grid[selected[0]][selected[1]] as data }}">
+            <g transform="translate({{0.5 * D}}, {{0.5 * D}})" class="overlay">
+              <template repeat="{{ loc in data.attackers }}">
+                <line x1="{{selected[0] * D}}" y1="{{(N-1 - selected[1]) * D}}"
+                      x2="{{loc[0] * D}}" y2="{{(N-1 - loc[1]) * D}}"
+                      stroke="red" stroke-width="5" stroke-dasharray="5, 5">
+                </line>
+              </template>
+              <template repeat="{{ loc in data.defenders }}">
+                <line x1="{{selected[0] * D}}" y1="{{(N-1 - selected[1]) * D}}"
+                      x2="{{loc[0] * D}}" y2="{{(N-1 - loc[1]) * D}}"
+                      stroke="green" stroke-width="5" stroke-dasharray="5, 5">
+                </line>
+              </template>
+              <template repeat="{{ loc in data.attacking }}">
+                <line x1="{{selected[0] * D}}" y1="{{(N-1 - selected[1]) * D}}"
+                      x2="{{loc[0] * D}}" y2="{{(N-1 - loc[1]) * D}}"
+                      stroke="red" stroke-width="5" stroke-linecap="round">
+                </line>
+              </template>
+              <template repeat="{{ loc in data.defending }}">
+                <line x1="{{selected[0] * D}}" y1="{{(N-1 - selected[1]) * D}}"
+                      x2="{{loc[0] * D}}" y2="{{(N-1 - loc[1]) * D}}"
+                      stroke="green" stroke-width="5" stroke-linecap="round">
+                </line>
+              </template>
+            </g>
+          </template>
+        </template>
+        <!-- pieces -->
+        <template repeat="{{ file in range(N) }}">
+          <template repeat="{{ rank in range(N) }}">
+            <g transform="translate({{file * D}}, {{(N-1 - rank) * D}})" class="square">
               <template bind="{{grid[file][rank] as data}}">
                 <template if="{{data}}">
                   <!-- piece -->
@@ -87,46 +130,9 @@
             </g>
           </template>
         </template>
-        <!-- overlay: moves -->
-        <template repeat="{{ loc in lit }}">
-          <g class="overlay" transform="translate({{loc[0] * D}}, {{(N-1 - loc[1]) * D}})">
-            <rect width="{{D}}" height="{{D}}" fill="yellow" opacity="0.5" />
-          </g>
-        </template>
-        <!-- overlay: local threats -->
-        <template if="{{ selected != null }}">
-          <template bind="{{ grid[selected[0]][selected[1]] as data }}">
-            <g transform="translate({{0.5 * D}}, {{0.5 * D}})">
-              <template repeat="{{ loc in data.attackers }}">
-                <line x1="{{selected[0] * D}}" y1="{{(N-1 - selected[1]) * D}}"
-                      x2="{{loc[0] * D}}" y2="{{(N-1 - loc[1]) * D}}"
-                      stroke="red" stroke-width="5" stroke-dasharray="5, 5">
-                </line>
-              </template>
-              <template repeat="{{ loc in data.defenders }}">
-                <line x1="{{selected[0] * D}}" y1="{{(N-1 - selected[1]) * D}}"
-                      x2="{{loc[0] * D}}" y2="{{(N-1 - loc[1]) * D}}"
-                      stroke="green" stroke-width="5" stroke-dasharray="5, 5">
-                </line>
-              </template>
-              <template repeat="{{ loc in data.attacking }}">
-                <line x1="{{selected[0] * D}}" y1="{{(N-1 - selected[1]) * D}}"
-                      x2="{{loc[0] * D}}" y2="{{(N-1 - loc[1]) * D}}"
-                      stroke="red" stroke-width="5" stroke-linecap="round">
-                </line>
-              </template>
-              <template repeat="{{ loc in data.defending }}">
-                <line x1="{{selected[0] * D}}" y1="{{(N-1 - selected[1]) * D}}"
-                      x2="{{loc[0] * D}}" y2="{{(N-1 - loc[1]) * D}}"
-                      stroke="green" stroke-width="5" stroke-linecap="round">
-                </line>
-              </template>
-            </g>
-          </template>
-        </template>
         <!-- loading dimmer -->
         <template if="{{loading}}">
-          <rect width="{{8 * D}}" height="{{8 * D}}" fill="black" class="dimmer">
+          <rect width="{{8 * D}}" height="{{8 * D}}" fill="black" class="dimmer" />
         </template>
       </g>
     </svg>
