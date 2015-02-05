@@ -1,9 +1,10 @@
 TODO
 ====
 
+- add readme for github
+
 - servlet
   - add ability to rotate board
-  - add attacking/defending/attackers/defenders
   - persist history
 
 - refactor json conversion code
