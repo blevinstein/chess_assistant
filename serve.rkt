@@ -15,6 +15,8 @@
     #:port 8000
     #:server-root-path (current-directory)
     #:servlet-regexp #rx""))
+    ;#:listen-ip "::1"))
+    ;#:listen-ip "2001:4978:f:683::2"))
 
 (define (main)
   (let loop ()
