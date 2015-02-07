@@ -210,7 +210,9 @@
       },
 
       setPosition: function(newPosition) {
-        this.history.push(this.grid);
+        if (this.grid.length > 0 && this.position.length > 0) {
+          this.history.push([this.grid, this.position]);
+        }
         this.grid = [];
         for (var i = 0; i < this.N; i++) {
           this.grid[i] = [];
@@ -300,7 +302,11 @@
         if (keyChar == "f") {
           this.flip = !this.flip;
         } else if (keyChar == "u") {
-          this.grid = this.history.pop();
+          if (this.history.length > 0) {
+            var gp = this.history.pop();
+            this.grid = gp[0];
+            this.position = gp[1];
+          }
         }
       },
 
