@@ -2,7 +2,7 @@
 <link rel="import" href="/bower_components/core-ajax/core-xhr.html">
 <link rel="import" href="/bower_components/core-icons/core-icons.html">
 
-<polymer-element name="chess-board">
+<polymer-element name="chess-board" on-keypress="handleKeypress">
   <template>
     <style>
       svg {
@@ -34,11 +34,11 @@
     <svg width="{{8 * D + 50}}" height="{{8 * D + 50}}">
       <template repeat="{{i in range(N) }}">
         <!-- file labels -->
-        <text x="{{(i + 0.5) * D + 50}}" y="25" font-size="{{D * 0.25}}">
+        <text x="{{xof(i, flip) + 0.5 * D + 50}}" y="25" font-size="{{D * 0.25}}">
           {{fileStr(i)}}
         </text>
         <!-- rank labels -->
-        <text x="25" y="{{(7 - i + 0.5) * D + 50}}" font-size="{{D * 0.25}}">
+        <text x="25" y="{{yof(i, flip) + 0.5 * D + 50}}" font-size="{{D * 0.25}}">
           {{rankStr(i)}}
         </text>
       </template>
@@ -47,7 +47,7 @@
         <!-- background -->
         <template repeat="{{ file in range(N) }}">
           <template repeat="{{ rank in range(N) }}">
-            <g transform="translate({{file * D}}, {{(N-1 - rank) * D}})" class="square">
+            <g transform="translate({{xof(file, flip)}}, {{yof(rank)}})" class="square">
               <rect width="{{D}}"
                     height="{{D}}"
                     fill="{{grid[file][rank].background}}">
@@ -56,7 +56,7 @@
         </template>
         <!-- overlay: moves -->
         <template repeat="{{ loc in lit }}">
-          <g class="overlay" transform="translate({{loc[0] * D}}, {{(N-1 - loc[1]) * D}})">
+          <g class="overlay" transform="translate({{xof(loc[0], flip)}}, {{yof(loc[1], flip)}})">
             <rect width="{{D}}" height="{{D}}" fill="yellow" opacity="0.5" />
           </g>
         </template>
@@ -65,26 +65,26 @@
           <template bind="{{ grid[selected[0]][selected[1]] as data }}">
             <g transform="translate({{0.5 * D}}, {{0.5 * D}})" class="overlay">
               <template repeat="{{ loc in data.attackers }}">
-                <line x1="{{selected[0] * D}}" y1="{{(N-1 - selected[1]) * D}}"
-                      x2="{{loc[0] * D}}" y2="{{(N-1 - loc[1]) * D}}"
+                <line x1="{{xof(selected[0], flip)}}" y1="{{yof(selected[1], flip)}}"
+                      x2="{{xof(loc[0], flip)}}" y2="{{yof(loc[1], flip)}}"
                       stroke="red" stroke-width="5" stroke-dasharray="5, 5">
                 </line>
               </template>
               <template repeat="{{ loc in data.defenders }}">
-                <line x1="{{selected[0] * D}}" y1="{{(N-1 - selected[1]) * D}}"
-                      x2="{{loc[0] * D}}" y2="{{(N-1 - loc[1]) * D}}"
+                <line x1="{{xof(selected[0], flip)}}" y1="{{yof(selected[1], flip)}}"
+                      x2="{{xof(loc[0], flip)}}" y2="{{yof(loc[1], flip)}}"
                       stroke="green" stroke-width="5" stroke-dasharray="5, 5">
                 </line>
               </template>
               <template repeat="{{ loc in data.attacking }}">
-                <line x1="{{selected[0] * D}}" y1="{{(N-1 - selected[1]) * D}}"
-                      x2="{{loc[0] * D}}" y2="{{(N-1 - loc[1]) * D}}"
+                <line x1="{{xof(selected[0], flip)}}" y1="{{yof(selected[1], flip)}}"
+                      x2="{{xof(loc[0], flip)}}" y2="{{yof(loc[1], flip)}}"
                       stroke="red" stroke-width="5" stroke-linecap="round">
                 </line>
               </template>
               <template repeat="{{ loc in data.defending }}">
-                <line x1="{{selected[0] * D}}" y1="{{(N-1 - selected[1]) * D}}"
-                      x2="{{loc[0] * D}}" y2="{{(N-1 - loc[1]) * D}}"
+                <line x1="{{xof(selected[0], flip)}}" y1="{{yof(selected[1], flip)}}"
+                      x2="{{xof(loc[0], flip)}}" y2="{{yof(loc[1], flip)}}"
                       stroke="green" stroke-width="5" stroke-linecap="round">
                 </line>
               </template>
@@ -94,7 +94,7 @@
         <!-- pieces -->
         <template repeat="{{ file in range(N) }}">
           <template repeat="{{ rank in range(N) }}">
-            <g transform="translate({{file * D}}, {{(N-1 - rank) * D}})" class="square">
+            <g transform="translate({{xof(file, flip)}}, {{yof(rank, flip)}})" class="square">
               <rect width="{{D}}" height="{{D}}" opacity="0"
                     on-click="{{handleClick}}"
                     data-clickable="true"
@@ -175,6 +175,13 @@
       selected: null,
       loading: false,
 
+      xof: function(x, flipped) {
+        return flipped ? (this.N-1 - x) * this.D : x * this.D;
+      },
+      yof: function(y, flipped) {
+        return flipped ? y * this.D : (this.N-1 - y) * this.D;
+      },
+
       getBackground: function (file, rank) {
         if ((file + rank) % 2 == 0) {
           return "#666";
@@ -232,8 +239,8 @@
       },
 
       ready: function () {
-        var self = this;
-
+        // enable keypress capture
+        this.tabIndex = 0;
         // get a new board
         this.$.xhr.request({url: "/new-board", callback: cb(this, this.setPositionCallback)});
       },
@@ -282,8 +289,14 @@
         } else { // else get possible moves from here
           this.getMoves(click);
           this.selected = click;
-          console.log(this.selected);
-          console.log(this.grid[this.selected[0]][this.selected[1]]);
+        }
+      },
+
+      flip: false,
+      handleKeypress: function (e) {
+        var keyChar = String.fromCharCode(e.keyCode);
+        if (keyChar == "f") {
+          this.flip = !this.flip;
         }
       },
 
