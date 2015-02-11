@@ -3,6 +3,8 @@
 (require rackunit)
 (require "chess.rkt")
 
+(define (parse-move a b) (list (move (new-location a) (new-location b))))
+
 (define chess-tests
   (test-suite
     "Chess Tests"
@@ -40,24 +42,20 @@
       (check-equal? (length all-locations) 64))
 
     (test-case "valid-move"
-      (define (parse-move a b) (move (new-location a) (new-location b)))
       (check-true (valid-move (new-position) (parse-move "c2" "c3")) "c3")
       (check-true (valid-move (new-position) (parse-move "b1" "c3")) "Nc3")
       (check-false (valid-move (new-position) (parse-move "c2" "c5")) "!")
       )
 
     (test-case "pawn-moves"
-      (define (parse-move a b) (move (new-location a) (new-location b)))
       (check-equal? (list (parse-move "c2" "c3") (parse-move "c2" "c4"))
         (pawn-moves (new-position) (new-location "c2"))))
 
     (test-case "knight-moves"
-      (define (parse-move a b) (move (new-location a) (new-location b)))
       (check-equal? (set (parse-move "b1" "a3") (parse-move "b1" "c3") (parse-move "b1" "d2"))
         (list->set (knight-moves (new-position) (new-location "b1")))))
 
     (test-case "rook-moves"
-      (define (parse-move a b) (move (new-location a) (new-location b)))
       (check-equal? (set (parse-move "a1" "a2") (parse-move "a1" "b1"))
         (list->set (rook-moves (new-position) (new-location "a1"))))
       (check-equal?
@@ -71,7 +69,6 @@
       )
 
     (test-case "queen-moves"
-      (define (parse-move a b) (move (new-location a) (new-location b)))
       (check-equal?
       (list->set (queen-moves (new-position) (new-location "d5")))
         (set
