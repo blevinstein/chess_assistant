@@ -16,6 +16,7 @@
 (define-type Position (Listof ColorPieceLocation))
 
 (define-type Move (Listof move))
+(define-predicate Move? Move)
 (provide (struct-out move))
 (struct: move ([source : location] [dest : location]) #:transparent)
 
@@ -107,7 +108,6 @@
             (char->rank (string-ref str 1))))
 
 ; TODO promotions
-; TODO castling
 
 ; creates a new move from a string representation
 (provide new-move)
@@ -149,7 +149,7 @@
     ; find all locations which are the source of a valid move to dest
     (define valid-locations (filter
       (lambda: ([loc : location])
-        (and (valid-move position (move loc dest))
+        (and (valid-move position (list (move loc dest)))
              (or (null? hint) (hint loc))))
       candidate-locations))
     (move (cond
@@ -163,12 +163,22 @@
   (match (string->list str)
     ; kingside castle
     [(list #\O #\- #\O)
-      (list (move (location (char->file #\h) (back-rank color)) (location (char->file #\f) (back-rank color)))
-            (move (location (char->file #\e) (back-rank color)) (location (char->file #\g) (back-rank color))))]
+      (list
+        (move
+          (location (char->file #\e) (back-rank color))
+          (location (char->file #\g) (back-rank color)))
+        (move
+          (location (char->file #\h) (back-rank color))
+          (location (char->file #\f) (back-rank color))))]
     ; queenside castle
     [(list #\O #\- #\O #\- #\O)
-      (list (move (location (char->file #\a) (back-rank color)) (location (char->file #\d) (back-rank color)))
-            (move (location (char->file #\e) (back-rank color)) (location (char->file #\c) (back-rank color))))]
+      (list
+        (move
+          (location (char->file #\e) (back-rank color))
+          (location (char->file #\c) (back-rank color)))
+        (move
+          (location (char->file #\a) (back-rank color))
+          (location (char->file #\d) (back-rank color))))]
     [(list file rank)
       (list (infer-move 'P (parse-loc file rank)))]
     [(list piece file rank) #:when (is-piece? piece)
@@ -188,25 +198,37 @@
           #:hint (curry equal? (parse-loc hfile hrank))))]
     [_ (raise-argument-error 'new-move "valid move" str)]))
 
-(provide possible-move)
-(: possible-move (-> Position move Boolean))
-(define (possible-move position mv)
-  (not (false? (member mv (possible-moves position (move-source mv))))))
+(provide build-move)
+(: build-move (-> Position move Move))
+(define (build-move position mv)
+  (first (filter Move?
+    (for/list : (Listof (Option Move))
+      ; for all valid moves
+      ([move-list (valid-moves position (move-source mv))])
+      ; see if they contain this partial move
+      (member mv move-list)))))
 
-; TODO allow castling
+(provide possible-move)
+(: possible-move (-> Position Move Boolean))
+(define (possible-move position move-list)
+  (define all-moves 
+    (apply append (for/list : (Listof (Listof Move)) ([mv move-list])
+      (possible-moves position (move-source mv)))))
+  (not (false? (member move-list all-moves))))
+
 (provide valid-move)
-(: valid-move (-> Position move Boolean))
-(define (valid-move position mv)
-  (define source (position-ref position (move-source mv)))
-  (define dest (position-ref position (move-dest mv)))
-  (cond
-    ; source does not contain a piece
-    [(false? source) #f]
-    ; piece cannot make this move
-    [(not (possible-move position mv)) #f]
-    ; cannot take own piece
-    [(and (color-piece? source) (color-piece? dest) (equal? (car source) (car dest))) #f]
-    [else #t]))
+(: valid-move (-> Position Move Boolean))
+(define (valid-move position move-list)
+  (and (possible-move position move-list)
+    (for/and ([mv move-list])
+      (define source (position-ref position (move-source mv)))
+      (define dest (position-ref position (move-dest mv)))
+      (cond
+        ; source does not contain a piece
+        [(false? source) #f]
+        ; cannot take own piece
+        [(and (color-piece? source) (color-piece? dest) (equal? (car source) (car dest))) #f]
+        [else #t]))))
 
 ; get a ColorPiece from a position
 (provide position-ref)
@@ -230,9 +252,8 @@
     [else (raise-result-error 'position-ref! "color-piece" optional-color-piece)]))
 
 ; returns possible moves, given a source location
-; TODO add castling
 (provide possible-moves)
-(: possible-moves (-> Position location (Listof move)))
+(: possible-moves (-> Position location (Listof Move)))
 (define (possible-moves position loc)
   (define color-piece (position-ref position loc))
   (cond
@@ -241,12 +262,12 @@
     [else (raise-user-error 'no-piece-at-location)]))
 
 (provide valid-moves)
-(: valid-moves (-> Position location (Listof move)))
+(: valid-moves (-> Position location (Listof Move)))
 (define (valid-moves position loc)
-  (filter (lambda: ([mv : move]) (valid-move position mv)) (possible-moves position loc)))
+  (filter (lambda: ([mv : Move]) (valid-move position mv)) (possible-moves position loc)))
 
 ; returns the appropriate function for calculating a piece's moves
-(: piece-move-func (-> Symbol (-> Position location (Listof move))))
+(: piece-move-func (-> Symbol (-> Position location (Listof Move))))
 (define (piece-move-func piece)
   (match piece
     ['P pawn-moves]
@@ -258,24 +279,24 @@
     [_ (raise-argument-error 'piece-move-func "[KQBNRP]" piece)]))
 
 ; returns the moves a leaper can make
-(: leaper-moves (-> location Position location (Listof move)))
+(: leaper-moves (-> location Position location (Listof Move)))
 (define (leaper-moves offset position source)
-  (map (lambda: ([dest : location]) (move source dest))
+  (map (lambda: ([dest : location]) (list (move source dest)))
     (filter in-bounds
       (map (curry add-location source) (all-offsets offset)))))
 
 ; returns all moves a rider can make along a single path
-(: rider-path (-> location Position location location (Listof move)))
+(: rider-path (-> location Position location location (Listof Move)))
 (define (rider-path offset position original source)
   (define dest (add-location source offset))
-  (define mv (move original dest))
+  (define mv (list (move original dest)))
   (define piece-at-dest (position-ref position dest))
   (cond
     [(not (in-bounds dest)) null]
     [(false? piece-at-dest) (cons mv (rider-path offset position original dest))]
     [else (list mv)]))
 
-(: rider-moves (-> location Position location (Listof move)))
+(: rider-moves (-> location Position location (Listof Move)))
 (define (rider-moves offset position source)
   (append*
     (map (lambda: ([direction : location]) (rider-path direction position source source))
@@ -284,33 +305,73 @@
 ; defines piece moves in terms of leapers and riders
 
 (provide knight-moves)
-(: knight-moves (-> Position location (Listof move)))
+(: knight-moves (-> Position location (Listof Move)))
 (define knight-moves (curry leaper-moves (location 1 2)))
 
 (provide rook-moves)
-(: rook-moves (-> Position location (Listof move)))
+(: rook-moves (-> Position location (Listof Move)))
 (define rook-moves (curry rider-moves (location 1 0)))
 
 (provide bishop-moves)
-(: bishop-moves (-> Position location (Listof move)))
+(: bishop-moves (-> Position location (Listof Move)))
 (define bishop-moves (curry rider-moves (location 1 1)))
 
 (provide queen-moves)
-(: queen-moves (-> Position location (Listof move)))
+(: queen-moves (-> Position location (Listof Move)))
 (define (queen-moves position source)
   (append
     (rider-moves (location 1 0) position source)
     (rider-moves (location 1 1) position source)))
 
+; TODO remember when rook or king has moved back
+;   - Position -> History ?
+;   - History : (Listof Position)
 (provide king-moves)
-(: king-moves (-> Position location (Listof move)))
+(: king-moves (-> Position location (Listof Move)))
 (define (king-moves position source)
+  ; get color of king
+  (define color (car (position-ref! position source)))
+  ; initial-pos = whether the king is in his starting square
+  (define initial-pos
+    (equal? source
+      (if (equal? color 'white)
+        (location 4 0)
+        (location 4 7))))
+  ; get rank occupied
+  (define rank (location-rank source))
+  ; is-empty? checks if a square is empty
+  (: is-empty? (-> location Boolean))
+  (define (is-empty? loc) (false? (position-ref position loc)))
+  ; is-rook? checks if a square contains a rook of the same color as the king
+  (: is-rook? (-> location Boolean))
+  (define (is-rook? loc)
+    (equal? (cons color 'R) (position-ref position loc)))
+
   (append
+    ; normal moves
     (leaper-moves (location 1 0) position source)
-    (leaper-moves (location 1 1) position source)))
+    (leaper-moves (location 1 1) position source)
+    ; queenside castle
+    (if (and (is-rook? (location 0 rank))
+             (is-empty? (location 1 rank))
+             (is-empty? (location 2 rank))
+             (is-empty? (location 3 rank)))
+      (list (list
+        (move source (location 2 rank))
+        (move (location 0 rank) (location 3 rank))))
+      empty)
+    ; kingside castle
+    (if (and (is-rook? (location 7 rank))
+             (is-empty? (location 6 rank))
+             (is-empty? (location 5 rank)))
+      (list (list
+        (move source (location 6 rank))
+        (move (location 7 rank) (location 5 rank))))
+      empty)
+  ))
 
 (provide pawn-moves)
-(: pawn-moves (-> Position location (Listof move)))
+(: pawn-moves (-> Position location (Listof Move)))
 (define (pawn-moves position source)
   (: open? (-> location Boolean))
   (define (open? space) (not (position-ref position space)))
@@ -319,19 +380,19 @@
   (define direction (if (equal? color 'white) (location 0 1) (location 0 -1)))
   (define unmoved (or (and (equal? color 'white) (equal? rank 1))
                       (and (equal? color 'black) (equal? rank 6))))
-  (: move-to (-> location move))
-  (define (move-to space) (move source space))
+  (: move-to (-> location Move))
+  (define (move-to space) (list (move source space)))
   (define plus-one (add-location source direction))
   (define plus-two (add-location source direction direction))
   (define left (add-location source direction (location -1 0)))
   (define right (add-location source direction (location 1 0)))
-  (define: optional-moves : (Listof (Option move))
+  (define: optional-moves : (Listof (Option Move))
     (list
       (if (open? plus-one) (move-to plus-one) #f)
       (if (and unmoved (open? plus-one) (open? plus-two)) (move-to plus-two) #f)
       (if (not (open? left)) (move-to left) #f)
       (if (not (open? right)) (move-to right) #f)))
-  (filter move? optional-moves))
+  (filter Move? optional-moves))
 
 ; checks that a location is in [0,8) x [0,8)
 (define (in-bounds loc)
@@ -367,6 +428,7 @@
         (location (- file) (- rank)))]))
   (remove-duplicates (all-transformations offset)))
 
+; TODO rewrite for/list: and rm ann
 (provide all-locations)
 (: all-locations (Listof location))
 (define all-locations
@@ -401,37 +463,38 @@
 ; makes a move and returns the new position
 ; NOTE does not support en passant
 (provide make-move)
-(: make-move (-> Position move Position))
-(define (make-move position mv)
-  (when (not (valid-move position mv)) (raise-user-error 'invalid-move-attempted))
-  (define source (move-source mv))
-  (define dest (move-dest mv))
-  (define color-piece (position-ref! position source))
-  (define piece (cdr color-piece))
-  (: at-location? (-> location ColorPieceLocation Boolean))
-  (define (at-location? loc cpl) (equal? (third cpl) loc))
-  ; remove pieces from source and dest
-  (define to-remove-list (append (filter (curry at-location? source) position)
-                                 (filter (curry at-location? dest) position)))
-  ; add piece from source to dest
-  (: to-add ColorPieceLocation)
-  (define to-add
-    (list (car color-piece) (cdr color-piece) dest))
-  (list* to-add
-    (remove* to-remove-list
-      position)))
+(: make-move (-> Position Move Position))
+(define (make-move position move-list)
+  (when (not (valid-move position move-list)) (raise-user-error 'invalid-move-attempted))
+  (for ([mv move-list])
+    (define source (move-source mv))
+    (define dest (move-dest mv))
+    (define color-piece (position-ref! position source))
+    (define piece (cdr color-piece))
+    (: at-location? (-> location ColorPieceLocation Boolean))
+    (define (at-location? loc cpl) (equal? (third cpl) loc))
+    ; remove pieces from source and dest
+    (set! position (remove-piece position source))
+    (set! position (remove-piece position dest))
+    (set! position (cons (list (car color-piece) (cdr color-piece) dest) position)))
+  position)
+
+(provide remove-piece)
+(: remove-piece (-> Position location Position))
+(define (remove-piece position loc)
+  (filter
+    (lambda: ([cpl : ColorPieceLocation]) (not (equal? (third cpl) loc)))
+    position))
 
 ; get all moves from a source in source-list to a dest in dest-list
-(: get-moves (-> Position (Listof location) (Listof location) (Listof move)))
+(: get-moves (-> Position (Listof location) (Listof location) (Listof Move)))
 (define (get-moves position source-list dest-list)
-  (filter
-    (curry possible-move position)
-    (append*
-      (ann (for/list ([source source-list])
-        (ann (for/list ([dest dest-list])
-          (move source dest)
-        ) (Listof move))
-      ) (Listof (Listof move))))))
+  (define all-moves
+    (for*/list : (Listof Move) ([source source-list] [dest dest-list])
+      (list (move source dest))))
+  (filter Move?
+    (for/list : (Listof (Option Move)) ([mv all-moves])
+      (if (possible-move position mv) mv #f))))
 
 ; return a list of squares occupied by this color
 (: locations-of-color (-> Position Symbol (Listof location)))
@@ -445,17 +508,24 @@
 (: defenders (-> Position location (Listof location)))
 (define (defenders position target)
   (define target-color (car (position-ref! position target)))
-  (map move-source
+  (: get-source (-> Move location))
+  (define (get-source move-list)
+    (move-source (first move-list)))
+  (map get-source 
     (get-moves position
       (locations-of-color position target-color)
       (list target)
       )))
+  
 
 (provide defending)
 (: defending (-> Position location (Listof location)))
 (define (defending position target)
   (define target-color (car (position-ref! position target)))
-  (map move-dest
+  (: get-dest (-> Move location))
+  (define (get-dest move-list)
+    (move-dest (first move-list)))
+  (map get-dest
     (get-moves position
       (list target)
       (locations-of-color position target-color)
@@ -466,7 +536,10 @@
 (: attackers (-> Position location (Listof location)))
 (define (attackers position target)
   (define target-color (car (position-ref! position target)))
-  (map move-source
+  (: get-source (-> Move location))
+  (define (get-source move-list)
+    (move-source (first move-list)))
+  (map get-source 
     (get-moves position
       (locations-of-color position (other-player target-color))
       (list target)
@@ -476,7 +549,10 @@
 (: attacking (-> Position location (Listof location)))
 (define (attacking position target)
   (define target-color (car (position-ref! position target)))
-  (map move-dest
+  (: get-dest (-> Move location))
+  (define (get-dest move-list)
+    (move-dest (first move-list)))
+  (map get-dest
     (get-moves position
       (list target)
       (locations-of-color position (other-player target-color))

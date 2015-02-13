@@ -155,6 +155,7 @@
 
     // utility to create callbacks
     // NOTE: sets loading flag on 'self' object
+    // TODO: timeout after X seconds
     window.cb = function(self, handler) {
       self.loading = true;
       return function (resp) {
@@ -324,7 +325,7 @@
       },
 
       lightDestinations: function(moves) {
-        this.light(moves.map(function (move) { return move[1]; }));
+        this.light(moves.map(function (move) { return move[0][1]; }));
       },
       lightDestinationsCallback: function(resp) {
         this.lightDestinations(JSON.parse(resp));

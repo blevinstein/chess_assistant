@@ -55,7 +55,7 @@
 
   (with-handlers
     ([exn:fail? (lambda (e) (log-error "moves error ~a" e) (render-error e))])
-    (render-json (move->json (valid-moves position source)))))
+    (render-json (map move->json (valid-moves position source)))))
 
 (define (try-move req)
   (define parsed-req (bytes->jsexpr (request-post-data/raw req)))
@@ -66,10 +66,10 @@
 
   (with-handlers
     ([exn:fail? (lambda (e) (log-error "try-move error ~a" e) (render-error e))])
-    (define mv (move source dest))
+    (define mv (build-move position (move source dest)))
     (if (valid-move position mv)
-      (render-json (position->json (make-move position (move source dest))))
-      (raise-argument-error "try-move" "valid move" (move source dest)))))
+      (render-json (position->json (make-move position mv)))
+      (raise-argument-error 'try-move "valid move" mv))))
 
 ; JSON conversion code
 ; TODO refactor into separate file
@@ -113,8 +113,8 @@
 
 (provide move->json)
 (define (move->json mv)
-  (define (xfm-mv move-part) (match move-part [(move s d) (map location->json (list s d))]))
-  (map xfm-mv mv))
+  (define (xfm-part move-part) (match move-part [(move s d) (map location->json (list s d))]))
+  (map xfm-part mv))
 
 ; json->*
 

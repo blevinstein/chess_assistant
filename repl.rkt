@@ -137,8 +137,9 @@
       ((command first-char) current-position (substring input 1))
       (with-handlers ([exn:fail? (lambda (exn) (displayln (errormsg exn)))])
         (define move-list (new-move current-position to-move input))
-        (for ([mv move-list])
-          (set! current-position (make-move current-position mv)))
+        (displayln move-list)
+        (displayln (valid-move current-position move-list))
+        (set! current-position (make-move current-position move-list))
         (set! to-move (other-player to-move))))
 
 
