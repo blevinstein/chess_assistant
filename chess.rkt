@@ -428,16 +428,13 @@
         (location (- file) (- rank)))]))
   (remove-duplicates (all-transformations offset)))
 
-; TODO rewrite for/list: and rm ann
 (provide all-locations)
 (: all-locations (Listof location))
 (define all-locations
   (append*
-    (ann (for/list ([rank (in-range 8)])
-      (ann (for/list ([file (in-range 8)])
-        (location file rank)
-      ) (Listof location))
-    ) (Listof (Listof location)))))
+    (for/list : (Listof (Listof location)) ([rank (in-range 8)])
+      (for/list : (Listof location) ([file (in-range 8)])
+        (location file rank)))))
 
 ; grid->position conversion code
 
@@ -447,18 +444,17 @@
   (define cpls : (Listof (Option ColorPieceLocation))
     (for/list ([loc all-locations])
       (define color-piece (grid-ref grid loc))
-      (ann (match color-piece
+      (match color-piece
         [(cons color piece) (list color piece loc)]
-        [_ #f]) (Option ColorPieceLocation))))
+        [_ #f])))
   (filter color-piece-location? cpls))
 
 (provide position->grid)
 (: position->grid (-> Position Grid))
 (define (position->grid position)
   (for/list ([rank (in-range 8)])
-    (ann (for/list ([file (in-range 8)])
-      (position-ref position (location file rank))
-      ) (Listof (Option ColorPiece)))))
+    (for/list : (Listof (Option ColorPiece)) ([file (in-range 8)])
+      (position-ref position (location file rank)))))
 
 ; makes a move and returns the new position
 ; NOTE does not support en passant
