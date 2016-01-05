@@ -65,7 +65,8 @@
   (define dest (json->location (hash-ref parsed-req 'dest)))
 
   (with-handlers
-    ([exn:fail? (lambda (e) (log-error "try-move error ~a" e) (render-error e))])
+    ([exn:fail?
+      (lambda (e) (log-error "try-move error ~a" e) (render-error e))])
     (define mv (build-move position (move source dest)))
     (if (valid-move position mv)
       (render-json (position->json (make-move position mv)))
@@ -113,7 +114,8 @@
 
 (provide move->json)
 (define (move->json mv)
-  (define (xfm-part move-part) (match move-part [(move s d) (map location->json (list s d))]))
+  (define (xfm-part move-part)
+    (match move-part [(move s d) (map location->json (list s d))]))
   (map xfm-part mv))
 
 ; json->*
@@ -122,7 +124,8 @@
 (define (json->grid json)
   (define (xfm-cp cp)
     (match cp
-      [(hash-table ('color c) ('piece p) (k v) ...) (cons (string->symbol c) (string->symbol p))]
+      [(hash-table ('color c) ('piece p) (k v) ...)
+        (cons (string->symbol c) (string->symbol p))]
       ['null #f]))
   (define (xfm-row row) (map xfm-cp row))
   (map xfm-row json))
