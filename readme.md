@@ -1,7 +1,23 @@
+README
+======
+
+Simple chess assistant. Helps the player visualize the board.
+
+To run on command line:
+
+> racket src/repl.rkt
+
+To run in browser:
+
+> ./serve.sh
+(then navigate to http://localhost:8000)
+
+To run tests:
+
+> racket src/chess-test.rkt
+
 TODO
 ====
-
-- add readme for github
 
 - servlet
   - add ability to rotate board
