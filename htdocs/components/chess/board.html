@@ -277,13 +277,16 @@
       },
 
       handleClick: function(e, detail, sender) {
-        if (sender.dataset.clickable != "true") {
+        if (sender.attributes['data-clickable'].nodeValue != "true") {
           this.selected = null;
           return;
         }
 
         // get click location
-        var click = [parseInt(sender.dataset.file), parseInt(sender.dataset.rank)];
+        var click = [
+            parseInt(sender.attributes['data-file'].nodeValue),
+            parseInt(sender.attributes['data-rank'].nodeValue)
+        ];
 
         // if we have 2 locations, try to make a move
         // TODO replace with is-valid check
