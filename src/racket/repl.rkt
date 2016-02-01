@@ -126,7 +126,7 @@
       line)
 
     (print-position current-position)
-    
+
     (displayln (string-append "to move: " (symbol->string to-move)))
 
     (display "move > ")
