@@ -6,8 +6,8 @@
 (require racket/rerequire)
 (require web-server/servlet-env)
 
-(dynamic-rerequire (string->path "src/servlet.rkt"))
-(define start (dynamic-require "src/servlet.rkt" 'start))
+(dynamic-rerequire (string->path "src/racket/servlet.rkt"))
+(define start (dynamic-require "src/racket/servlet.rkt" 'start))
 
 (define (run-server)
   (serve/servlet start
@@ -33,8 +33,8 @@
     ; reload servlet.rkt if necessary
     (with-handlers
       ([exn:fail? (lambda (e) (displayln (~a "error ~a" e)))])
-      (dynamic-rerequire "src/servlet.rkt")
-      (set! start (dynamic-require "src/servlet.rkt" 'start)))
+      (dynamic-rerequire "src/racket/servlet.rkt")
+      (set! start (dynamic-require "src/racket/servlet.rkt" 'start)))
     (displayln "Restarting server...")
     (loop)))
 
