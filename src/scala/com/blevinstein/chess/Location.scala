@@ -17,6 +17,10 @@ case class Location(file: Int, rank: Int) {
 
   def background: Color = if ((file + rank) % 2 == 0) Black else White
 
+  def +(offset: (Int, Int)): Location = offset match {
+    case (f, r) => Location(file + f, rank + r)
+  }
+
   override def toString: String =
       s"${Location.fileStr(file)}${Location.rankStr(rank)}"
 }
