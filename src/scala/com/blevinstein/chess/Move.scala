@@ -35,20 +35,27 @@ object Move {
   def mul(offset: (Int, Int), k: Int): (Int, Int) =
       (offset._1 * k, offset._2 * k)
 
+  // Attempt to move a piece from [source] to [destination].
+  // Does not check for occluding pieces in between.
   def tryMove(
       position: Position,
       source: Location,
-      dest: Location): Option[Position] = {
+      dest: Location,
+      canCapture: Boolean = true,
+      mustCapture: Boolean = false):
+      Option[Position] = {
     (position(source), position(dest)) match {
       // Move to open space
       case (Some((sourceColor, piece)), None)
-          if sourceColor == position.toMove =>
+          if sourceColor == position.toMove && !mustCapture =>
           Some(position.update(Map(
               source -> None,
               dest -> Some((sourceColor, piece)))))
       // Capture
       case (Some((sourceColor, piece)), Some((destColor, _)))
-          if sourceColor == position.toMove && destColor == !position.toMove =>
+          if sourceColor == position.toMove &&
+              destColor == !position.toMove &&
+              canCapture =>
           Some(position.update(Map(
               source -> None,
               dest -> Some((sourceColor, piece)))))
