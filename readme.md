@@ -19,6 +19,27 @@ To run tests:
 TODO
 ====
 
+Scala Rewrite
+-------------
+
+- Reimplement basic chess rules.
+- Reimplement basic REPL.
+- Reimplement server functionality.
+
+Projects:
+
+TODO: Audit existing polymer code
+TODO: Design castling (easyish)
+TODO: Design en passant (medium)
+TODO: Design check avoidance (hard)
+  - King cannot move into check
+  - King cannot pass through check while castling
+  - A piece that has been pinned to the King can only move along the pin
+TODO: Research algorithms for coloring the board
+
+Old TODO List
+-------------
+
 - servlet
   - add ability to rotate board
   - persist history

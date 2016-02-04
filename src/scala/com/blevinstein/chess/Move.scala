@@ -1,5 +1,11 @@
 package com.blevinstein.chess
 
+// There are two types of moves.
+// 1. Piece moves. Each living Pawn/Knight/Bishop/Rook/Queen/King may have
+//    available moves.
+// 2. Castling. Moves two pieces at once, is only allowed under specific
+//    conditions. (Any other exceptions?)
+
 trait Move {
   // Returns the new state of the board after making [this] move.
   // Should return None if [this] is not a valid move.
