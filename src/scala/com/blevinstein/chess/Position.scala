@@ -3,8 +3,7 @@ package com.blevinstein.chess;
 import com.blevinstein.chess.Piece._
 
 object Position {
-  def initial: Position =
-      Position(
+  def initial: Position = Position(
           Map(Location(0, 0) -> Some((White, Rook)),
               Location(1, 0) -> Some((White, Knight)),
               Location(2, 0) -> Some((White, Bishop)),
