@@ -9,13 +9,11 @@ package com.blevinstein.chess
 trait Move {
   // Returns the new state of the board after making [this] move.
   // Should return None if [this] is not a valid move.
-  def apply(history: History, position: Position): Option[Position]
+  def apply(position: Position): Option[Position]
   // Returns true if [this] is is a legal move that could be made when the board
-  // is in [position], after [history].
-  // NOTE: To fully embed information about legal moves, we need to have access
-  // to the entire history of the board. Consider en passant and castling.
-  def isLegal(history: History, position: Position): Boolean =
-      apply(history, position) != None
+  // is in [position].
+  // TODO: add post-move checks, e.g. moving King into check
+  def isLegal(position: Position): Boolean = apply(position) != None
 }
 
 object Move {
@@ -32,14 +30,26 @@ object Move {
   }
   // Helper methods
 
+  // TODO: test
+  def firstMove(position: Position, location: Location, cp: (Color, Piece)):
+      Boolean =
+      position.history.forall{ case (pos) => pos(location) == cp }
+
+  // TODO: test
   def allTransformations(offset: (Int, Int)): List[(Int, Int)] = offset match {
     case (f, r) => Set(
         (f, r), (-f, r), (f, -r), (-f, -r),
         (r, f), (-r, f), (r, -f), (-r, -f)).toList
   }
 
+  // Helper for multiplying a tuple of Ints by a scalar
   def mul(offset: (Int, Int), k: Int): (Int, Int) =
       (offset._1 * k, offset._2 * k)
+
+  // Helper for adding tuples of Ints
+  // TODO: rm if unused
+  //def plus(a: (Int, Int), b: (Int, Int)): (Int, Int) =
+  //    (a._1 + b._1, a._2 + b._2)
 
   // Attempt to move a piece from [source] to [destination].
   // Does not check for occluding pieces in between.
@@ -71,6 +81,24 @@ object Move {
   }
 }
 
+// TODO: case class Castle(color: Color, kingside: Boolean) extends Move
+
+// TODO: test
+case class CustomMove(
+    source: Location,
+    dest: Location,
+    canCapture: Boolean = true,
+    mustCapture: Boolean = false) extends Move {
+  def apply(position: Position): Option[Position] =
+      Move.tryMove(
+          position,
+          source,
+          dest,
+          canCapture = canCapture,
+          mustCapture = mustCapture)
+}
+
+// TODO: test
 object LeaperMove {
   def all(source: Location, offset: (Int, Int)): List[LeaperMove] =
       Move.allTransformations(offset).
@@ -79,11 +107,11 @@ object LeaperMove {
           toList
 }
 case class LeaperMove(source: Location, offset: (Int, Int)) extends Move {
-  def apply(history: History, position: Position):
-      Option[Position] =
+  def apply(position: Position): Option[Position] =
       Move.tryMove(position, source, source + offset)
 }
 
+// TODO: test
 object RiderMove {
   def all(source: Location, offset: (Int, Int)): List[RiderMove] =
       Move.allTransformations(offset).
@@ -99,7 +127,7 @@ object RiderMove {
 case class RiderMove(source: Location, offset: (Int, Int), dist: Int) extends
     Move {
 
-  def apply(history: History, position: Position):
+  def apply(position: Position):
       Option[Position] = {
     val emptyBetween = (1 until dist).
         forall(i => position(source + Move.mul(offset, i + 1)) == None)

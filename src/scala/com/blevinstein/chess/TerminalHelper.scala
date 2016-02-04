@@ -1,7 +1,5 @@
 package com.blevinstein.chess
 
-import com.blevinstein.chess.Piece._
-
 object TerminalHelper {
   // used to generate terminal escape sequences
   // http://misc.flogisoft.com/bash/tip_colors_and_formatting

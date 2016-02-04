@@ -1,7 +1,5 @@
 package com.blevinstein.chess;
 
-import com.blevinstein.chess.Piece._
-
 object Position {
   def initial: Position = Position(
           Map(Location(0, 0) -> Some((White, Rook)),
@@ -37,27 +35,29 @@ object Position {
               Location(6, 7) -> Some((Black, Knight)),
               Location(7, 7) -> Some((Black, Rook)))
               .withDefaultValue(None),
-          White)
+          White,
+          List())
 }
-case class Position(map: Map[Location, Option[(Color, Piece)]], toMove: Color) {
+// NOTE: [history] is stored in reverse order, so [history.head] is the most
+// recent position.
+case class Position(
+    map: Map[Location, Option[(Color, Piece)]],
+    toMove: Color,
+    history: List[Position]) {
   import com.blevinstein.chess.TerminalHelper._
 
-  // Update functions:
-
+  // delegate to [map]
   def apply(location: Location): Option[(Color, Piece)] = map(location)
-
-  def +(kv: (Location, Option[(Color, Piece)])): Position =
-      Position(map + kv, toMove)
-
-  def nextMove: Position = Position(map, !toMove)
 
   def update(delta: Map[Location, Option[(Color, Piece)]]): Position = {
       require(!delta.isEmpty)
-      delta.foldLeft(this) {
-        case (pos: Position, kv: (Location, Option[(Color, Piece)])) =>
-            pos + kv
-      }.nextMove
+      Position(delta.foldLeft(map) {
+        case (map: Map[Location, Option[(Color, Piece)]],
+            kv: (Location, Option[(Color, Piece)])) => map + kv
+      }, !toMove, this :: history)
   }
+
+  def rewind: Position = Position(history.head.map, !toMove, history.tail)
 
   // Display functions:
 
