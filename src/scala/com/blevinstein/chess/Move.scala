@@ -3,19 +3,18 @@ package com.blevinstein.chess
 trait Move {
   // NOTE: To fully embed information about valid moves, we need to have access
   // to the entire history of the board. Consider en passant and castling.
-  def apply(history: History, position: Position, toMove: Color):
+  def apply(history: History, position: Position):
       Option[Position]
 }
 
 object Move {
   // Create a move, given [input] in chess notation
-  def infer(position: Position, toMove: Color, input: String) = input match {
+  def infer(position: Position, input: String) = input match {
     case _ => ???
   }
 
   def infer(
       position: Position,
-      toMove: Color,
       hintPredicate: Location => Boolean = (_) => true,
       promote: Option[Piece] = None) {
     ???
@@ -33,18 +32,21 @@ object Move {
 
   def tryMove(
       position: Position,
-      toMove: Color,
       source: Location,
       dest: Location): Option[Position] = {
     (position(source), position(dest)) match {
       // Move to open space
       case (Some((sourceColor, piece)), None)
-          if sourceColor == toMove =>
-          Some(position + (source, None) + (dest, Some((sourceColor, piece))))
+          if sourceColor == position.toMove =>
+          Some((position +
+              (source, None) +
+              (dest, Some((sourceColor, piece)))).nextMove)
       // Capture
       case (Some((sourceColor, piece)), Some((destColor, _)))
-          if sourceColor == toMove && destColor == !toMove =>
-          Some(position + (source, None) + (dest, Some((toMove, piece))))
+          if sourceColor == position.toMove && destColor == !position.toMove =>
+          Some((position +
+              (source, None) +
+              (dest, Some((position.toMove, piece)))).nextMove)
       // Can't move
       case _ => None
     }
@@ -59,9 +61,9 @@ object LeaperMove {
           toList
 }
 case class LeaperMove(source: Location, offset: (Int, Int)) extends Move {
-  def apply(history: History, position: Position, toMove: Color):
+  def apply(history: History, position: Position):
       Option[Position] =
-      Move.tryMove(position, toMove, source, source + offset)
+      Move.tryMove(position, source, source + offset)
 }
 
 object RiderMove {
@@ -79,13 +81,13 @@ object RiderMove {
 case class RiderMove(source: Location, offset: (Int, Int), dist: Int) extends
     Move {
 
-  def apply(history: History, position: Position, toMove: Color):
+  def apply(history: History, position: Position):
       Option[Position] = {
     val emptyBetween = (1 until dist).
         forall(i => position(source + Move.mul(offset, i + 1)) == None)
 
     if (emptyBetween) {
-      Move.tryMove(position, toMove, source, source + Move.mul(offset, dist))
+      Move.tryMove(position, source, source + Move.mul(offset, dist))
     } else {
       None
     }
