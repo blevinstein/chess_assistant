@@ -42,8 +42,10 @@ object Position {
 case class Position(map: Map[Location, Option[(Color, Piece)]], toMove: Color) {
   import com.blevinstein.chess.TerminalHelper._
 
-  // delegate to map
+  // Update functions:
+
   def apply(location: Location): Option[(Color, Piece)] = map(location)
+
   def +(kv: (Location, Option[(Color, Piece)])): Position =
       Position(map + kv, toMove)
 
@@ -56,6 +58,8 @@ case class Position(map: Map[Location, Option[(Color, Piece)]], toMove: Color) {
             pos + kv
       }.nextMove
   }
+
+  // Display functions:
 
   def prettyPrint: Unit = {
     println(s"To move: $toMove")
