@@ -4,11 +4,12 @@ trait Move {
   // Returns the new state of the board after making [this] move.
   // Should return None if [this] is not a valid move.
   def apply(history: History, position: Position): Option[Position]
-  // Returns true if [this] is is a valid move that could be made when the board
+  // Returns true if [this] is is a legal move that could be made when the board
   // is in [position], after [history].
-  // NOTE: To fully embed information about valid moves, we need to have access
+  // NOTE: To fully embed information about legal moves, we need to have access
   // to the entire history of the board. Consider en passant and castling.
-  // TODO Refactor def isValid(history: History, position: Position): Boolean
+  def isLegal(history: History, position: Position): Boolean =
+      apply(history, position) != None
 }
 
 object Move {
