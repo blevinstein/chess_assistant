@@ -47,7 +47,7 @@ case class Position(map: Map[Location, Option[(Color, Piece)]]) {
   def prettyPrint: Unit = {
     // File labels
     print("     ")
-    for (file <- 0 until 8) { print(s"  ${Location.fileStr(file)}  ") }
+    for (file <- 0 until 8) { print(s" ${Location.fileStr(file)}  ") }
     println()
     for (rank <- 0 until 8) {
       // Rank labels
@@ -58,13 +58,13 @@ case class Position(map: Map[Location, Option[(Color, Piece)]]) {
           case White => print(backgroundWhite)
         }
         map(Location(file, rank)) match {
-          case None => print("     ")
+          case None => print("    ")
           case Some((color, piece)) => {
             color match {
               case Black => print(foregroundBlack)
               case White => print(foregroundWhite)
             }
-            print(s"  ${getCode(color, piece)}  ")
+            print(s" ${getCode(color, piece)}  ")
           }
         }
       }
