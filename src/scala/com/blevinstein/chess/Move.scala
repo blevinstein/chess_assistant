@@ -8,6 +8,18 @@ trait Move {
 }
 
 object Move {
+  // Create a move, given [input] in chess notation
+  def infer(position: Position, toMove: Color, input: String) = input match {
+    case _ => ???
+  }
+
+  def infer(
+      position: Position,
+      toMove: Color,
+      hintPredicate: Location => Boolean = (_) => true,
+      promote: Option[Piece] = None) {
+    ???
+  }
   // Helper methods
 
   def allTransformations(offset: (Int, Int)): List[(Int, Int)] = offset match {

@@ -5,6 +5,11 @@ abstract class Color {
     case White => Black
     case Black => White
   }
+
+  override def toString: String = this match {
+    case White => "White"
+    case Black => "Black"
+  }
 }
 object White extends Color
 object Black extends Color

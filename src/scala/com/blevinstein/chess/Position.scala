@@ -37,6 +37,7 @@ object Position {
           Location(6, 7) -> Some((Black, Knight)),
           Location(7, 7) -> Some((Black, Rook))).withDefaultValue(None))
 }
+// TODO: Refactor toMove into Position.
 case class Position(map: Map[Location, Option[(Color, Piece)]]) {
   import com.blevinstein.chess.TerminalHelper._
 
