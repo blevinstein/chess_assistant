@@ -1,10 +1,14 @@
 package com.blevinstein.chess
 
 trait Move {
+  // Returns the new state of the board after making [this] move.
+  // Should return None if [this] is not a valid move.
+  def apply(history: History, position: Position): Option[Position]
+  // Returns true if [this] is is a valid move that could be made when the board
+  // is in [position], after [history].
   // NOTE: To fully embed information about valid moves, we need to have access
   // to the entire history of the board. Consider en passant and castling.
-  def apply(history: History, position: Position):
-      Option[Position]
+  // TODO Refactor def isValid(history: History, position: Position): Boolean
 }
 
 object Move {
@@ -38,15 +42,15 @@ object Move {
       // Move to open space
       case (Some((sourceColor, piece)), None)
           if sourceColor == position.toMove =>
-          Some((position +
-              (source, None) +
-              (dest, Some((sourceColor, piece)))).nextMove)
+          Some(position.update(Map(
+              source -> None,
+              dest -> Some((sourceColor, piece)))))
       // Capture
       case (Some((sourceColor, piece)), Some((destColor, _)))
           if sourceColor == position.toMove && destColor == !position.toMove =>
-          Some((position +
-              (source, None) +
-              (dest, Some((position.toMove, piece)))).nextMove)
+          Some(position.update(Map(
+              source -> None,
+              dest -> Some((sourceColor, piece)))))
       // Can't move
       case _ => None
     }

@@ -44,8 +44,18 @@ case class Position(map: Map[Location, Option[(Color, Piece)]], toMove: Color) {
 
   // delegate to map
   def apply(location: Location): Option[(Color, Piece)] = map(location)
-  def +(kv: (Location, Option[(Color, Piece)])): Position = Position(map + kv, toMove)
+  def +(kv: (Location, Option[(Color, Piece)])): Position =
+      Position(map + kv, toMove)
+
   def nextMove: Position = Position(map, !toMove)
+
+  def update(delta: Map[Location, Option[(Color, Piece)]]): Position = {
+      require(!delta.isEmpty)
+      delta.foldLeft(this) {
+        case (pos: Position, kv: (Location, Option[(Color, Piece)])) =>
+            pos + kv
+      }.nextMove
+  }
 
   def prettyPrint: Unit = {
     println(s"To move: $toMove")
