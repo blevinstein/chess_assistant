@@ -30,13 +30,11 @@ object Move {
   }
   // Helper methods
 
-  // TODO: test
   def firstMove(position: Position, location: Location): Boolean =
       position(location) == Position.initial(location) &&
       position.history.forall{
           case (pos) => pos(location) == Position.initial(location) }
 
-  // TODO: test
   def allTransformations(offset: (Int, Int)): List[(Int, Int)] = offset match {
     case (f, r) => Set(
         (f, r), (-f, r), (f, -r), (-f, -r),
@@ -61,23 +59,25 @@ object Move {
       canCapture: Boolean = true,
       mustCapture: Boolean = false):
       Option[Position] = {
-    (position(source), position(dest)) match {
-      // Move to open space
-      case (Some((sourceColor, piece)), None)
-          if sourceColor == position.toMove && !mustCapture =>
-          Some(position.update(Map(
-              source -> None,
-              dest -> Some((sourceColor, piece)))))
-      // Capture
-      case (Some((sourceColor, piece)), Some((destColor, _)))
-          if sourceColor == position.toMove &&
-              destColor == !position.toMove &&
-              canCapture =>
-          Some(position.update(Map(
-              source -> None,
-              dest -> Some((sourceColor, piece)))))
-      // Can't move
-      case _ => None
+    if (source.isValid && dest.isValid) {
+      (position(source), position(dest)) match {
+        // Move to open space
+        case (Some((sourceColor, piece)), None)
+            if !mustCapture =>
+            Some(position.update(Map(
+                source -> None,
+                dest -> Some((sourceColor, piece)))))
+        // Capture
+        case (Some((sourceColor, piece)), Some((destColor, _)))
+            if sourceColor != destColor && canCapture =>
+            Some(position.update(Map(
+                source -> None,
+                dest -> Some((sourceColor, piece)))))
+        // Can't move
+        case _ => None
+      }
+    } else {
+      None
     }
   }
 }
@@ -99,7 +99,6 @@ case class CustomMove(
           mustCapture = mustCapture)
 }
 
-// TODO: test
 object LeaperMove {
   def all(source: Location, offset: (Int, Int)): List[LeaperMove] =
       Move.allTransformations(offset).
@@ -108,11 +107,13 @@ object LeaperMove {
           toList
 }
 case class LeaperMove(source: Location, offset: (Int, Int)) extends Move {
+  require(offset != (0, 0))
+  require((source + offset).isValid)
+
   def apply(position: Position): Option[Position] =
       Move.tryMove(position, source, source + offset)
 }
 
-// TODO: test
 object RiderMove {
   def all(source: Location, offset: (Int, Int)): List[RiderMove] =
       Move.allTransformations(offset).
@@ -127,11 +128,14 @@ object RiderMove {
 }
 case class RiderMove(source: Location, offset: (Int, Int), dist: Int) extends
     Move {
+  require(offset != (0, 0))
+  require(dist > 0)
+  require((source + Move.mul(offset, dist)).isValid)
 
   def apply(position: Position):
       Option[Position] = {
     val emptyBetween = (1 until dist).
-        forall(i => position(source + Move.mul(offset, i + 1)) == None)
+        forall(i => position(source + Move.mul(offset, i)) == None)
 
     if (emptyBetween) {
       Move.tryMove(position, source, source + Move.mul(offset, dist))
