@@ -14,7 +14,7 @@ object Pawn extends Piece {
     val left = (-1, 0)
     val right = (1, 0)
 
-    val firstMove = Move.firstMove(position, location, (pieceColor, Pawn))
+    val firstMove = Move.firstMove(position, location)
 
     // TODO: incomplete
     List(CustomMove(location, location + forward, canCapture = false)).

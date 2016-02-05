@@ -31,9 +31,10 @@ object Move {
   // Helper methods
 
   // TODO: test
-  def firstMove(position: Position, location: Location, cp: (Color, Piece)):
-      Boolean =
-      position.history.forall{ case (pos) => pos(location) == cp }
+  def firstMove(position: Position, location: Location): Boolean =
+      position(location) == Position.initial(location) &&
+      position.history.forall{
+          case (pos) => pos(location) == Position.initial(location) }
 
   // TODO: test
   def allTransformations(offset: (Int, Int)): List[(Int, Int)] = offset match {
