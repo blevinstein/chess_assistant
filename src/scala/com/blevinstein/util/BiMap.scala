@@ -3,10 +3,11 @@ package com.blevinstein.util
 // Implementation partially copied from:
 // http://stackoverflow.com/questions/9850786/is-there-such-a-thing-as-bidirectional-maps-in-scala
 
-class BiMap[X, Y](map: Map[X, Y]) {
-  def this(tuples: (X, Y)*) = this(tuples.toMap)
+case class BiMap[X, Y](kvs: (X, Y)*) {
+  val map = Map(kvs:_*)
+  val inverse = Map(kvs.map{_.swap}:_*)
 
-  val inverse = map map (_.swap)
+  // no duplicate keys OR values allowed
   require(map.size == inverse.size)
 
   // delegate to Map
