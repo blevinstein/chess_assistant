@@ -65,11 +65,11 @@ case class Position(
     println(s"To move: $toMove")
     // File labels
     print("     ")
-    for (file <- 0 until 8) { print(s" ${Location.fileStr(file)}  ") }
+    for (file <- 0 until 8) { print(s" ${Location.fileToStr(file)}  ") }
     println()
     for (rank <- 0 until 8) {
       // Rank labels
-      print(s"  ${Location.rankStr(rank)}  ")
+      print(s"  ${Location.rankToStr(rank)}  ")
       for (file <- 0 until 8) {
         Location(file, rank).background match {
           case Black => print(backgroundBlack)

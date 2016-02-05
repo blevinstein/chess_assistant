@@ -1,16 +1,39 @@
 package com.blevinstein.chess
 
+import com.blevinstein.util.BiMap
+
 object Location {
+  def apply(str: String): Location = Location(
+      fileToStr.inverse(str.substring(0, 1)),
+      rankToStr.inverse(str.substring(1)))
+
   def values: List[Location] =
       List.tabulate(8)(i =>
           List.tabulate(8)(j =>
               Location(i, j))).flatten
 
-  def rankStr(rank: Int): String = "12345678".substring(rank, rank + 1)
+  val rankToStr: BiMap[Int, String] = BiMap(
+      0 -> "1",
+      1 -> "2",
+      2 -> "3",
+      3 -> "4",
+      4 -> "5",
+      5 -> "6",
+      6 -> "7",
+      7 -> "8")
 
-  def fileStr(file: Int): String = "abcdefgh".substring(file, file + 1)
+  val fileToStr: BiMap[Int, String] = BiMap(
+      0 -> "a",
+      1 -> "b",
+      2 -> "c",
+      3 -> "d",
+      4 -> "e",
+      5 -> "f",
+      6 -> "g",
+      7 -> "h")
 }
 case class Location(file: Int, rank: Int) {
+
   def isValid: Boolean =
       0 <= rank && rank < 8 &&
       0 <= file && file < 8
@@ -22,5 +45,5 @@ case class Location(file: Int, rank: Int) {
   }
 
   override def toString: String =
-      s"${Location.fileStr(file)}${Location.rankStr(rank)}"
+      s"${Location.fileToStr(file)}${Location.rankToStr(rank)}"
 }
