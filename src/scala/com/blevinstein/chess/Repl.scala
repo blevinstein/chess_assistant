@@ -19,7 +19,7 @@ object Repl extends App with Runnable {
       // TODO check for commands
 
       try {
-        val move = Move.infer(currentPosition, moveStr)
+        val move = Move.create(currentPosition, moveStr)
       } catch {
         case e: Throwable => println(s"$foregroundRed$e$reset")
       }

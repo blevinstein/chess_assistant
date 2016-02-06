@@ -3,6 +3,13 @@ package com.blevinstein.chess
 trait Piece {
   def letter: String
   def getMoves(position: Position, location: Location): List[Move]
+
+  override def toString: String = this.getClass.getSimpleName
+}
+object Piece {
+  val byLetter: Map[String, Piece] = List(Pawn, Knight, Bishop, Rook, Queen, King).
+      map(piece => piece.letter -> piece)
+      .toMap
 }
 
 object Pawn extends Piece {

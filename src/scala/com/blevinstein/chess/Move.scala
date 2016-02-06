@@ -18,17 +18,48 @@ trait Move {
 
 object Move {
   // Create a move, given [input] in chess notation
-  def infer(position: Position, input: String) = input match {
+  def create(position: Position, input: String) = input.toCharArray match {
+    // kingside castle
+    case Array('O', '-', 'O') => Castle(position.toMove, kingside = true)
+    // queenside castle
+    case Array('O', '-', 'O', '-', 'O') =>
+        Castle(position.toMove, kingside = false)
+    // e.g. b3
+    case Array(rankChar, fileChar)
+        if Location.rankToStr.inverse.contains(s"$rankChar") &&
+            Location.fileToStr.inverse.contains(s"$fileChar") =>
+                infer(position, Location(s"$fileChar$rankChar"))
+    // e.g. Nb3
+    case Array(pieceChar, rankChar, fileChar)
+        if Location.rankToStr.inverse.contains(s"$rankChar") &&
+            Location.fileToStr.inverse.contains(s"$fileChar") &&
+            Piece.byLetter.contains(s"$pieceChar") =>
+                infer(position,
+                    Location(s"$fileChar$rankChar"),
+                    Piece.byLetter(s"$pieceChar"))
+    // TODO:
+    // e.g. ab3
+    // e.g. Nab3
+    // e.g. N2b3
+    // e.g. Nb1c3
     case _ => ???
   }
 
+  // Infer a move, given a set of restrictions, such as [dest], [piece],
+  // [sourcePredicate]. Does not support castling.
   def infer(
       position: Position,
-      hintPredicate: Location => Boolean = (_) => true,
+      dest: Location,
+      piece: Piece = Pawn,
+      sourcePredicate: Location => Boolean = (_) => true,
       promote: Option[Piece] = None) {
     ???
   }
+
   // Helper methods
+
+  def between(a: Int, b: Int): Range =
+      if (a <= b) (a + 1 to b - 1) else (b + 1 to a - 1)
 
   def firstMove(position: Position, location: Location): Boolean =
       position(location) == Position.initial(location) &&
@@ -81,8 +112,6 @@ object Move {
     }
   }
 }
-
-// TODO: case class Castle(color: Color, kingside: Boolean) extends Move
 
 // TODO: test
 case class CustomMove(
@@ -139,6 +168,32 @@ case class RiderMove(source: Location, offset: (Int, Int), dist: Int) extends
 
     if (emptyBetween) {
       Move.tryMove(position, source, source + Move.mul(offset, dist))
+    } else {
+      None
+    }
+  }
+}
+
+case class Castle(color: Color, kingside: Boolean) extends Move {
+  def apply(position: Position): Option[Position] = {
+    val rank = if (color == White) 0 else 7
+    val kingFile = 4
+    val rookFile = if (kingside) 7 else 0
+
+    val newRookFile = if (kingside) 5 else 3
+    val newKingFile = if (kingside) 6 else 2
+
+    val emptyBetween = Move.between(kingFile, rookFile).
+        forall(i => position(Location(i, rank)) == None)
+
+    if (emptyBetween &&
+        Move.firstMove(position, Location(rookFile, rank)) &&
+        Move.firstMove(position, Location(kingFile, rank))) {
+      Some(position.update(Map(
+          Location(kingFile, rank) -> None,
+          Location(rookFile, rank) -> None,
+          Location(newKingFile, rank) -> Some(color, King),
+          Location(newRookFile, rank) -> Some(color, Rook))))
     } else {
       None
     }
