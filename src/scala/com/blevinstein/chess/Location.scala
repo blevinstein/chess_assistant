@@ -33,7 +33,6 @@ object Location {
       7 -> "h")
 }
 case class Location(file: Int, rank: Int) {
-
   def isValid: Boolean =
       0 <= rank && rank < 8 &&
       0 <= file && file < 8
