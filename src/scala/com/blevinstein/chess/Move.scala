@@ -18,19 +18,19 @@ trait Move {
 
 object Move {
   // Create a move, given [input] in chess notation
-  def create(position: Position, input: String) = input.toCharArray match {
+  def create(position: Position, input: String): Move = input.toCharArray match {
     // kingside castle
     case Array('O', '-', 'O') => Castle(position.toMove, kingside = true)
     // queenside castle
     case Array('O', '-', 'O', '-', 'O') =>
         Castle(position.toMove, kingside = false)
     // e.g. b3
-    case Array(rankChar, fileChar)
+    case Array(fileChar, rankChar)
         if Location.rankToStr.inverse.contains(s"$rankChar") &&
             Location.fileToStr.inverse.contains(s"$fileChar") =>
                 infer(position, Location(s"$fileChar$rankChar"))
     // e.g. Nb3
-    case Array(pieceChar, rankChar, fileChar)
+    case Array(pieceChar, fileChar, rankChar)
         if Location.rankToStr.inverse.contains(s"$rankChar") &&
             Location.fileToStr.inverse.contains(s"$fileChar") &&
             Piece.byLetter.contains(s"$pieceChar") =>
@@ -46,14 +46,35 @@ object Move {
   }
 
   // Infer a move, given a set of restrictions, such as [dest], [piece],
-  // [sourcePredicate]. Does not support castling.
+  // [sourcePredicate].
   def infer(
       position: Position,
       dest: Location,
       piece: Piece = Pawn,
       sourcePredicate: Location => Boolean = (_) => true,
-      promote: Option[Piece] = None) {
-    ???
+      promote: Option[Piece] = None): Move = {
+    require(position(dest) match {
+          case None => true
+          case Some((color, _)) => color != position.toMove
+        },
+        "Cannot take a piece of the same color!")
+    val candidateMoves =
+        position.getMovesFrom(
+            // Filter possible source locations based on [sourcePredicate],
+            // [toMove], and [piece].
+            Location.values.
+                filter(sourcePredicate).
+                filter((loc) => position(loc) match {
+                  case None => false
+                  case Some((color, pc)) =>
+                      color == position.toMove && pc == piece
+                })).
+        // Filter to only include moves with the desired effect on [dest].
+        filter((move) =>
+            move(position).get.apply(dest) == Some(position.toMove, piece))
+    require(candidateMoves.length > 0, "No such legal move!")
+    require(candidateMoves.length < 2, "Description is ambiguous!")
+    candidateMoves(0)
   }
 
   // Helper methods

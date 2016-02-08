@@ -65,15 +65,15 @@ case class Position(
           Castle(Black, true),
           Castle(Black, false)).filter{_.isLegal(this)}
 
-  def getAllMoves: List[Move] =
-      // get contents of every location
-      Location.values.flatMap((loc: Location) => apply(loc) match {
+  // Gets all moves from pieces at the specified locations.
+  def getMovesFrom(locations: List[Location]): List[Move] =
+      locations.flatMap((loc: Location) => apply(loc) match {
         case None => None
         case Some((color, piece)) => Some((color, piece, loc))
-      // get all moves for each piece, flatten to merge Lists
-      }).flatMap{ case (color, piece, loc) => piece.getMoves(this, loc) } ++
-      // append castling as a special case
-          getCastleMoves
+      }).flatMap{ case (color, piece, loc) => piece.getMoves(this, loc) }
+
+  def getAllMoves: List[Move] =
+      getMovesFrom(Location.values) ++ getCastleMoves
 
   // Display functions:
 
