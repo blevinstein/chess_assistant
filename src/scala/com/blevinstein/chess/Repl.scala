@@ -13,7 +13,6 @@ object Repl extends App with Runnable {
       currentPosition.prettyPrint
       print("move > ")
       val moveStr = StdIn.readLine()
-      for (s <- moveStr.split("")) println(s"$s (${s.charAt(0).toInt})")
       // TODO add commands
 
       try {
