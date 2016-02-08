@@ -36,7 +36,7 @@ object Position {
           Location(7, 7) -> Some((Black, Rook)))
           .withDefaultValue(None),
       White,
-      List())
+      List.empty)
 }
 // NOTE: [history] is stored in reverse order, so [history.head] is the most
 // recent position.
@@ -58,6 +58,22 @@ case class Position(
   }
 
   def rewind: Position = Position(history.head.map, !toMove, history.tail)
+
+  def getCastleMoves: List[Move] =
+      List(Castle(White, true),
+          Castle(White, false),
+          Castle(Black, true),
+          Castle(Black, false)).filter{_.isLegal(this)}
+
+  def getAllMoves: List[Move] =
+      // get contents of every location
+      Location.values.flatMap((loc: Location) => apply(loc) match {
+        case None => None
+        case Some((color, piece)) => Some((color, piece, loc))
+      // get all moves for each piece, flatten to merge Lists
+      }).flatMap{ case (color, piece, loc) => piece.getMoves(this, loc) } ++
+      // append castling as a special case
+          getCastleMoves
 
   // Display functions:
 
