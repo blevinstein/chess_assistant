@@ -21,10 +21,16 @@ object Pawn extends Piece {
     val left = (-1, 0)
     val right = (1, 0)
 
-    val firstMove = Move.firstMove(position, location)
-
-    // TODO: incomplete
-    List(CustomMove(location, location + forward, canCapture = false)).
+    // TODO: add en passant
+    (List(CustomMove(location, location + forward, canCapture = false),
+            CustomMove(location, location + forward + left, mustCapture = true),
+            CustomMove(location, location + forward + right, mustCapture = true))
+            ++
+            (if (Move.firstMove(position, location))
+                List(CustomMove(location,
+                    location + forward + forward,
+                    canCapture = false))
+            else List.empty)).
         filter{_.isLegal(position)}
   }
 }
