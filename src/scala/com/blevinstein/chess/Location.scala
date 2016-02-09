@@ -21,6 +21,7 @@ object Location {
       5 -> "6",
       6 -> "7",
       7 -> "8")
+  val strToRank = rankToStr.inverse
 
   val fileToStr: BiMap[Int, String] = BiMap(
       0 -> "a",
@@ -31,6 +32,7 @@ object Location {
       5 -> "f",
       6 -> "g",
       7 -> "h")
+  val strToFile = fileToStr.inverse
 }
 case class Location(file: Int, rank: Int) {
   def isValid: Boolean =
