@@ -91,4 +91,10 @@ class MoveTest extends FunSuite with Matchers {
     Move.create(pos2, "Ba6") shouldEqual RiderMove(Location("f1"), (-1, 1), 5)
     Move.create(pos2, "Ne2") shouldEqual LeaperMove(Location("g1"), (-2, 1))
   }
+
+  test("Move.create - e4 Nf3 Bd3 opening") {
+    val pos = Position.create(List("e4", "e5", "Nf3", "Nf6", "Bd3", "Bd6"))
+    Move.create(pos, "O-O") shouldEqual Castle(White, kingside = true)
+    Move.create(pos, "Rf1") shouldEqual RiderMove(Location("h1"), (-1, 0), 2)
+  }
 }
