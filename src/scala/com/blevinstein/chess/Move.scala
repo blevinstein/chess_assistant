@@ -180,11 +180,6 @@ object Move {
   def mul(offset: (Int, Int), k: Int): (Int, Int) =
       (offset._1 * k, offset._2 * k)
 
-  // Helper for adding tuples of Ints
-  // TODO: rm if unused
-  //def plus(a: (Int, Int), b: (Int, Int)): (Int, Int) =
-  //    (a._1 + b._1, a._2 + b._2)
-
   // Attempt to move a piece from [source] to [destination].
   // Does not check for occluding pieces in between.
   def tryMove(
@@ -217,7 +212,6 @@ object Move {
   }
 }
 
-// TODO: test
 case class CustomMove(
     source: Location,
     dest: Location,
