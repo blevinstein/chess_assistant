@@ -28,7 +28,9 @@ object Move {
     case Array(fileChar, rankChar)
         if Location.rankToStr.inverse.contains(s"$rankChar") &&
             Location.fileToStr.inverse.contains(s"$fileChar") =>
-                infer(position, Location(s"$fileChar$rankChar"))
+                infer(position,
+                    Location(s"$fileChar$rankChar"),
+                    debugStr = input)
     // e.g. Nb3
     case Array(pieceChar, fileChar, rankChar)
         if Location.rankToStr.inverse.contains(s"$rankChar") &&
@@ -36,7 +38,8 @@ object Move {
             Piece.byLetter.contains(s"$pieceChar") =>
                 infer(position,
                     Location(s"$fileChar$rankChar"),
-                    Piece.byLetter(s"$pieceChar"))
+                    Piece.byLetter(s"$pieceChar"),
+                    debugStr = input)
     // TODO:
     // e.g. ab3
     // e.g. Nab3
@@ -52,12 +55,13 @@ object Move {
       dest: Location,
       piece: Piece = Pawn,
       sourcePredicate: Location => Boolean = (_) => true,
-      promote: Option[Piece] = None): Move = {
+      promote: Option[Piece] = None,
+      debugStr: String = ""): Move = {
     require(position(dest) match {
           case None => true
           case Some((color, _)) => color != position.toMove
         },
-        "Cannot take a piece of the same color!")
+        s"Cannot take a piece of the same color! $debugStr")
     val candidateMoves =
         position.getMovesFrom(
             // Filter possible source locations based on [sourcePredicate],
@@ -72,8 +76,8 @@ object Move {
         // Filter to only include moves with the desired effect on [dest].
         filter((move) =>
             move(position).get.apply(dest) == Some(position.toMove, piece))
-    require(candidateMoves.length > 0, "No such legal move!")
-    require(candidateMoves.length < 2, "Description is ambiguous!")
+    require(candidateMoves.length > 0, s"No such legal move! $debugStr")
+    require(candidateMoves.length < 2, s"Description is ambiguous! $debugStr")
     candidateMoves(0)
   }
 
