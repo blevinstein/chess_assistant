@@ -84,30 +84,75 @@ case class Position(
   // TODO: rm if unused
   // def getValidMoves: List[Move] = getAllMoves.filter{_.isLegal(this)}
 
+  // TODO: test
+  def isAttacking(a: Location, b: Location): Boolean =
+      getMovesFrom(List(a)).exists{_.getDest == Some(b)} &&
+      apply(a) != None &&
+      apply(b) != None &&
+      apply(a).get._1 != apply(b).get._1
+
+  // TODO: test
+  def isDefending(a: Location, b: Location): Boolean =
+      getMovesFrom(List(a)).exists{_.getDest == Some(b)} &&
+      apply(a) != None &&
+      apply(b) != None &&
+      apply(a).get._1 == apply(b).get._1
+
+  // TODO: test
+  def getAttackers(location: Location): List[(Color, Piece, Location)] =
+      Location.values.filter{isAttacking(_, location)}.flatMap{
+            loc => apply(loc) match {
+              case Some((color, piece)) => Some(color, piece, loc)
+              case None => ???
+            }
+          }
+
+  // TODO: test
+  def getDefenders(location: Location): List[(Color, Piece, Location)] =
+      Location.values.filter{isDefending(_, location)}.flatMap{
+            loc => apply(loc) match {
+              case Some((color, piece)) => Some((color, piece, loc))
+              case None => ???
+            }
+          }
+
+  def getThreatNumber(location: Location): Int =
+      getDefenders(location).size - getAttackers(location).size
+
   // Display functions:
 
   def prettyPrint: Unit = {
     println(s"To move: $toMove")
+    // Blank corner
+    print("      ")
     // File labels
-    print("     ")
-    for (file <- 0 until 8) { print(s" ${Location.fileToStr(file)}  ") }
+    for (file <- 0 until 8) { print(s"  ${Location.fileToStr(file)}   ") }
     println()
     for (rank <- 0 until 8) {
       // Rank labels
-      print(s"  ${Location.rankToStr(rank)}  ")
+      print(s"  ${Location.rankToStr(rank)}   ")
       for (file <- 0 until 8) {
         Location(file, rank).background match {
           case Black => print(backgroundBlack)
           case White => print(backgroundWhite)
         }
         map(Location(file, rank)) match {
-          case None => print("    ")
+          case None => print("      ")
           case Some((color, piece)) => {
+            val threatNumber = getThreatNumber(Location(file, rank))
             color match {
               case Black => print(foregroundBlack)
               case White => print(foregroundWhite)
             }
-            print(s" ${getCode(color, piece)}  ")
+            print(s" ${getCode(color, piece)} ")
+            if (threatNumber > 0) {
+              print(foregroundLightGreen)
+            } else if (threatNumber == 0) {
+              print (foregroundLightYellow)
+            } else {
+              print(foregroundLightRed)
+            }
+            print(f"$threatNumber%2d ")
           }
         }
       }

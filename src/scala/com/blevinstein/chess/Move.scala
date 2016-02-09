@@ -7,6 +7,8 @@ import com.blevinstein.chess.Location.{strToRank,strToFile}
 //    available moves.
 // 2. Castling. Moves two pieces at once, is only allowed under specific
 //    conditions. (Any other exceptions?)
+//
+// Not yet implemented: en passant
 
 trait Move {
   // Returns the new state of the board after making [this] move.
@@ -16,6 +18,9 @@ trait Move {
   // is in [position].
   // TODO: add post-move checks, e.g. moving King into check
   def isLegal(position: Position): Boolean = apply(position) != None
+
+  // NOTE: I'm not happy with this. Code smell, feels redundant.
+  def getDest: Option[Location] = None
 }
 
 object Move {
@@ -154,7 +159,7 @@ object Move {
             move(position).get.apply(dest) == Some(position.toMove, piece)).
         // Apply promotion effects afterwards if necessary
         map(move => promote match {
-          case None => move
+          case None => move // TODO: Check for pawns needing to promote?
           case Some(piece) => PromotePawn(move, dest, piece)
         }).toList
     require(candidateMoves.length > 0, s"No such legal move! $debugStr")
@@ -226,6 +231,8 @@ case class CustomMove(
           dest,
           canCapture = canCapture,
           mustCapture = mustCapture)
+
+  override def getDest: Option[Location] = Some(dest)
 }
 
 object LeaperMove {
@@ -241,6 +248,8 @@ case class LeaperMove(source: Location, offset: (Int, Int)) extends Move {
 
   def apply(position: Position): Option[Position] =
       Move.tryMove(position, source, source + offset)
+
+  override def getDest: Option[Location] = Some(source + offset)
 }
 
 object RiderMove {
@@ -261,8 +270,7 @@ case class RiderMove(source: Location, offset: (Int, Int), dist: Int) extends
   require(dist > 0)
   require((source + Move.mul(offset, dist)).isValid)
 
-  def apply(position: Position):
-      Option[Position] = {
+  def apply(position: Position): Option[Position] = {
     val emptyBetween = (1 until dist).
         forall(i => position(source + Move.mul(offset, i)) == None)
 
@@ -272,6 +280,8 @@ case class RiderMove(source: Location, offset: (Int, Int), dist: Int) extends
       None
     }
   }
+
+  override def getDest: Option[Location] = Some(source + Move.mul(offset, dist))
 }
 
 case class Castle(color: Color, kingside: Boolean) extends Move {
@@ -312,5 +322,7 @@ case class PromotePawn(baseMove: Move, location: Location, newPiece: Piece)
       case _ => None
     }
   }
+
+  override def getDest: Option[Location] = baseMove.getDest
 }
 
