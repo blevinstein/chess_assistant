@@ -147,6 +147,8 @@ object Move {
                   case Some((color, pc)) =>
                       color == position.toMove && pc == piece
                 })).
+        // Filter to only include legal moves
+        filter{_.isLegal(position)}.
         // Filter to only include moves with the desired effect on [dest].
         filter((move) =>
             move(position).get.apply(dest) == Some(position.toMove, piece)).

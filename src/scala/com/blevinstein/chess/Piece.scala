@@ -30,40 +30,36 @@ object Pawn extends Piece {
                 List(CustomMove(location,
                     location + forward + forward,
                     canCapture = false))
-            else List.empty)).
-        filter{_.isLegal(position)}
+            else List.empty))
   }
 }
 
 object Knight extends Piece {
   def letter: String = "N"
-  def getMoves(position: Position, location: Location):
-      List[Move] = LeaperMove.all(location, (1, 2)).filter{_.isLegal(position)}
+  def getMoves(position: Position, location: Location): List[Move] =
+      LeaperMove.all(location, (1, 2))
 }
 
 object Bishop extends Piece {
   def letter: String = "B"
-  def getMoves(position: Position, location: Location):
-      List[Move] = RiderMove.all(location, (1, 1)).filter{_.isLegal(position)}
+  def getMoves(position: Position, location: Location): List[Move] =
+      RiderMove.all(location, (1, 1))
 }
 
 object Rook extends Piece {
   def letter: String = "R"
-  def getMoves(position: Position, location: Location):
-      List[Move] = RiderMove.all(location, (0, 1)).filter{_.isLegal(position)}
+  def getMoves(position: Position, location: Location): List[Move] =
+      RiderMove.all(location, (0, 1))
 }
 
 object Queen extends Piece {
   def letter: String = "Q"
-  def getMoves(position: Position, location: Location):
-      List[Move] =
-          (RiderMove.all(location, (0, 1)) ++ RiderMove.all(location, (1, 1))).
-          filter{_.isLegal(position)}
+  def getMoves(position: Position, location: Location): List[Move] =
+      (RiderMove.all(location, (0, 1)) ++ RiderMove.all(location, (1, 1)))
 }
 
 object King extends Piece {
   def letter: String = "K"
   def getMoves(position: Position, location: Location): List[Move] =
-      (LeaperMove.all(location, (1, 1)) ++ LeaperMove.all(location, (0, 1))).
-          filter{_.isLegal(position)}
+      (LeaperMove.all(location, (1, 1)) ++ LeaperMove.all(location, (0, 1)))
 }

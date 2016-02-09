@@ -81,6 +81,9 @@ case class Position(
   def getAllMoves: List[Move] =
       getMovesFrom(Location.values) ++ getCastleMoves
 
+  // TODO: rm if unused
+  // def getValidMoves: List[Move] = getAllMoves.filter{_.isLegal(this)}
+
   // Display functions:
 
   def prettyPrint: Unit = {
