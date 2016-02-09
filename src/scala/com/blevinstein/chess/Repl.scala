@@ -6,7 +6,6 @@ import scala.io.StdIn
 
 object Repl extends App with Runnable {
   def run: Unit = {
-    var history = List.empty
     var currentPosition = Position.initial
 
     while (true) {
