@@ -22,8 +22,8 @@ TODO
 Scala Rewrite
 -------------
 
-- Reimplement basic chess rules.
-- Reimplement basic REPL.
+- Reimplement threat calculation.
+  - Difficult because defending moves arent legal.
 - Reimplement server functionality.
 
 Projects:
