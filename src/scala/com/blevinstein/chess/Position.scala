@@ -52,6 +52,8 @@ case class Position(
 
   // delegate to [map]
   def apply(location: Location): Option[(Color, Piece)] = map(location)
+  def +(kv: (Location, Option[(Color, Piece)])): Position =
+      Position(map + kv, toMove, history)
 
   def update(delta: Map[Location, Option[(Color, Piece)]]): Position = {
       require(!delta.isEmpty)
