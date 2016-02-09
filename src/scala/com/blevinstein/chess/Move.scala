@@ -1,5 +1,7 @@
 package com.blevinstein.chess
 
+import com.blevinstein.chess.Location.{strToRank,strToFile}
+
 // There are two types of moves.
 // 1. Piece moves. Each living Pawn/Knight/Bishop/Rook/Queen/King may have
 //    available moves.
@@ -17,35 +19,107 @@ trait Move {
 }
 
 object Move {
+  def createSourcePredicate(str: String): Location => Boolean =
+      str.split("") match {
+        case Array(rankStr) if strToRank.contains(rankStr) =>
+            (loc: Location) => loc.rank == strToRank(rankStr)
+        case Array(fileStr) if strToFile.contains(fileStr) =>
+            (loc: Location) => loc.file == strToFile(fileStr)
+        case Array(fileStr, rankStr)
+            if strToRank.contains(rankStr) &&
+            strToFile.contains(fileStr) =>
+                (loc: Location) =>
+                    loc.rank == strToRank(rankStr) &&
+                    loc.file == strToFile(fileStr)
+      }
+
   // Create a move, given [input] in chess notation
-  def create(position: Position, input: String): Move = input.toCharArray match {
+  def create(position: Position, input: String): Move = input.split("") match {
     // kingside castle
-    case Array('O', '-', 'O') => Castle(position.toMove, kingside = true)
+    case Array("O", "-", "O") => Castle(position.toMove, kingside = true)
+
     // queenside castle
-    case Array('O', '-', 'O', '-', 'O') =>
+    case Array("O", "-", "O", "-", "O") =>
         Castle(position.toMove, kingside = false)
+
     // e.g. b3
-    case Array(fileChar, rankChar)
-        if Location.rankToStr.inverse.contains(s"$rankChar") &&
-            Location.fileToStr.inverse.contains(s"$fileChar") =>
-                infer(position,
-                    Location(s"$fileChar$rankChar"),
-                    debugStr = input)
+    case Array(fileStr, rankStr)
+        if strToRank.contains(rankStr) &&
+        strToFile.contains(fileStr) =>
+            infer(position,
+                Location(fileStr + rankStr),
+                Pawn,
+                debugStr = input)
+
     // e.g. Nb3
-    case Array(pieceChar, fileChar, rankChar)
-        if Location.rankToStr.inverse.contains(s"$rankChar") &&
-            Location.fileToStr.inverse.contains(s"$fileChar") &&
-            Piece.byLetter.contains(s"$pieceChar") =>
+    case Array(pieceStr, fileStr, rankStr)
+        if strToRank.contains(rankStr) &&
+            strToFile.contains(fileStr) &&
+            Piece.byLetter.contains(pieceStr) =>
                 infer(position,
-                    Location(s"$fileChar$rankChar"),
-                    Piece.byLetter(s"$pieceChar"),
+                    Location(fileStr + rankStr),
+                    Piece.byLetter(pieceStr),
                     debugStr = input)
-    // TODO:
+
     // e.g. ab3
-    // e.g. Nab3
-    // e.g. N2b3
+    case Array(hintStr, fileStr, rankStr)
+        if strToRank.contains(rankStr) &&
+        strToFile.contains(fileStr) &&
+        (strToRank.contains(hintStr) || strToFile.contains(hintStr)) =>
+            infer(position,
+                Location(fileStr + rankStr),
+                Pawn,
+                sourcePredicate = createSourcePredicate(hintStr))
+
+    // e.g. Nab3, N2b3
+    case Array(pieceStr, hintStr, fileStr, rankStr)
+        if strToRank.contains(rankStr) &&
+        strToFile.contains(fileStr) &&
+        (strToRank.contains(hintStr) || strToFile.contains(hintStr)) &&
+        Piece.byLetter.contains(pieceStr) =>
+            infer(position,
+                Location(fileStr + rankStr),
+                Piece.byLetter(pieceStr),
+                sourcePredicate = createSourcePredicate(hintStr))
+
+    // e.g. a1Q
+    case Array(fileStr, rankStr, promoteStr)
+        if List("1", "8").contains(rankStr) &&
+        strToFile.contains(fileStr) &&
+        Piece.byLetter.contains(promoteStr) &&
+        !List("P", "K").contains(promoteStr) =>
+            infer(position,
+                Location(fileStr + rankStr),
+                Pawn,
+                promote = Some(Piece.byLetter(promoteStr)))
+
+    // e.g. ab1Q
+    case Array(hintStr, fileStr, rankStr, promoteStr)
+        if List("1", "8").contains(rankStr) &&
+        strToFile.contains(fileStr) &&
+        Piece.byLetter.contains(promoteStr) &&
+        !List("P", "K").contains(promoteStr) &&
+        (strToRank.contains(hintStr) || strToFile.contains(hintStr)) =>
+            infer(position,
+                Location(fileStr + rankStr),
+                Pawn,
+                promote = Some(Piece.byLetter(promoteStr)),
+                sourcePredicate = createSourcePredicate(hintStr))
+
     // e.g. Nb1c3
-    case _ => ???
+    case Array(pieceStr, sourceFileStr, sourceRankStr, fileStr, rankStr)
+        if strToFile.contains(fileStr) &&
+        strToFile.contains(sourceFileStr) &&
+        strToRank.contains(rankStr) &&
+        strToRank.contains(sourceRankStr) &&
+        Piece.byLetter.contains(pieceStr) =>
+            infer(position,
+                Location(fileStr + rankStr),
+                Piece.byLetter(pieceStr),
+                sourcePredicate =
+                    createSourcePredicate(sourceFileStr + sourceRankStr))
+
+    case _ => throw new RuntimeException(s"Unhandled move string: $input")
   }
 
   // Infer a move, given a set of restrictions, such as [dest], [piece],
@@ -53,7 +127,7 @@ object Move {
   def infer(
       position: Position,
       dest: Location,
-      piece: Piece = Pawn,
+      piece: Piece,
       sourcePredicate: Location => Boolean = (_) => true,
       promote: Option[Piece] = None,
       debugStr: String = ""): Move = {
@@ -62,7 +136,7 @@ object Move {
           case Some((color, _)) => color != position.toMove
         },
         s"Cannot take a piece of the same color! $debugStr")
-    val candidateMoves =
+    val candidateMoves: List[Move] =
         position.getMovesFrom(
             // Filter possible source locations based on [sourcePredicate],
             // [toMove], and [piece].
@@ -75,7 +149,12 @@ object Move {
                 })).
         // Filter to only include moves with the desired effect on [dest].
         filter((move) =>
-            move(position).get.apply(dest) == Some(position.toMove, piece))
+            move(position).get.apply(dest) == Some(position.toMove, piece)).
+        // Apply promotion effects afterwards if necessary
+        map(move => promote match {
+          case None => move
+          case Some(piece) => PromotePawn(move, dest, piece)
+        }).toList
     require(candidateMoves.length > 0, s"No such legal move! $debugStr")
     require(candidateMoves.length < 2, s"Description is ambiguous! $debugStr")
     candidateMoves(0)
@@ -221,6 +300,20 @@ case class Castle(color: Color, kingside: Boolean) extends Move {
           Location(newRookFile, rank) -> Some(color, Rook))))
     } else {
       None
+    }
+  }
+}
+
+case class PromotePawn(baseMove: Move, location: Location, newPiece: Piece)
+    extends Move {
+  require(List(Bishop, Knight, Rook, Queen).contains(newPiece))
+
+  def apply(position: Position): Option[Position] = {
+    val basePos: Position = baseMove(position).get
+    basePos(location) match {
+      case Some((color, Pawn)) =>
+          Some(basePos + (location, Some(color, newPiece)))
+      case _ => None
     }
   }
 }
