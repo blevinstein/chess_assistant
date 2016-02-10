@@ -11,17 +11,19 @@ object Repl extends App with Runnable {
     while (true) {
       currentPosition.prettyPrint
       print("move > ")
-      val moveStr = StdIn.readLine()
+      val line = StdIn.readLine()
       // TODO add commands
 
-      try {
-        val move = Move.create(currentPosition, moveStr)
-        currentPosition = move(currentPosition).get
-      } catch {
-        case e: Throwable => {
-          print(foregroundRed)
-          e.printStackTrace()
-          print(reset)
+      for (moveStr <- line.split(" ")) {
+        try {
+          val move = Move.create(currentPosition, moveStr)
+          currentPosition = move(currentPosition).get
+        } catch {
+          case e: Throwable => {
+            print(foregroundRed)
+            e.printStackTrace()
+            print(reset)
+          }
         }
       }
     }
