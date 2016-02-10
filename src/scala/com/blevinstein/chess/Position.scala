@@ -86,14 +86,16 @@ case class Position(
 
   // TODO: test
   def isAttacking(a: Location, b: Location): Boolean =
-      getMovesFrom(List(a)).exists{_.getDest == Some(b)} &&
+      getMovesFrom(List(a)).
+          exists{Move.getDest(_, filterCanCapture = true) == Some(b)} &&
       apply(a) != None &&
       apply(b) != None &&
       apply(a).get._1 != apply(b).get._1
 
   // TODO: test
   def isDefending(a: Location, b: Location): Boolean =
-      getMovesFrom(List(a)).exists{_.getDest == Some(b)} &&
+      getMovesFrom(List(a)).
+          exists{Move.getDest(_, filterCanCapture = true) == Some(b)} &&
       apply(a) != None &&
       apply(b) != None &&
       apply(a).get._1 == apply(b).get._1
@@ -150,7 +152,7 @@ case class Position(
             } else if (threatNumber == 0) {
               print (foregroundLightYellow)
             } else {
-              print(foregroundLightRed)
+              print(foregroundRed)
             }
             print(f"$threatNumber%2d ")
           }

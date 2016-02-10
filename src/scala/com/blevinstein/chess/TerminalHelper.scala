@@ -10,13 +10,15 @@ object TerminalHelper {
   val backgroundWhite = escape(List(48, 5, 246))
   val backgroundBlack = escape(List(48, 5, 240))
 
-  val foregroundWhite = escape(List(97))
-  val foregroundBlack = escape(List(30))
-  val foregroundRed   = escape(List(31))
+  val foregroundWhite  = escape(List(97))
+  val foregroundBlack  = escape(List(30))
+  val foregroundRed    = escape(List(31))
+  val foregroundGreen  = escape(List(32))
+  val foregroundYellow = escape(List(33))
 
-  val foregroundLightRed = escape(List(91))
-  val foregroundLightGreen = escape(List(92))
-  val foregroundLightYellow = escape(List(83))
+  val foregroundLightRed    = escape(List(91))
+  val foregroundLightGreen  = escape(List(92))
+  val foregroundLightYellow = escape(List(93))
 
   def getCode(color: Color, piece: Piece) = (color, piece) match {
     case (White, King)   => "\u2654"

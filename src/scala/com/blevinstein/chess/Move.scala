@@ -18,12 +18,19 @@ trait Move {
   // is in [position].
   // TODO: add post-move checks, e.g. moving King into check
   def isLegal(position: Position): Boolean = apply(position) != None
-
-  // NOTE: I'm not happy with this. Code smell, feels redundant.
-  def getDest: Option[Location] = None
 }
 
 object Move {
+  def getDest(move: Move, filterCanCapture: Boolean = false): Option[Location] =
+      move match {
+        case CustomMove(_, dest, canCapture, _) =>
+            if (!filterCanCapture || canCapture) Some(dest) else None
+        case LeaperMove(source, offset) => Some(source + offset)
+        case RiderMove(source, offset, dest) => Some(source + mul(offset, dest))
+        case PromotePawn(baseMove, _, _) => getDest(baseMove, filterCanCapture)
+        case _ => None
+      }
+
   def createSourcePredicate(str: String): Location => Boolean =
       str.split("") match {
         case Array(rankStr) if strToRank.contains(rankStr) =>
@@ -231,8 +238,6 @@ case class CustomMove(
           dest,
           canCapture = canCapture,
           mustCapture = mustCapture)
-
-  override def getDest: Option[Location] = Some(dest)
 }
 
 object LeaperMove {
@@ -248,8 +253,6 @@ case class LeaperMove(source: Location, offset: (Int, Int)) extends Move {
 
   def apply(position: Position): Option[Position] =
       Move.tryMove(position, source, source + offset)
-
-  override def getDest: Option[Location] = Some(source + offset)
 }
 
 object RiderMove {
@@ -280,8 +283,6 @@ case class RiderMove(source: Location, offset: (Int, Int), dist: Int) extends
       None
     }
   }
-
-  override def getDest: Option[Location] = Some(source + Move.mul(offset, dist))
 }
 
 case class Castle(color: Color, kingside: Boolean) extends Move {
@@ -322,7 +323,5 @@ case class PromotePawn(baseMove: Move, location: Location, newPiece: Piece)
       case _ => None
     }
   }
-
-  override def getDest: Option[Location] = baseMove.getDest
 }
 
