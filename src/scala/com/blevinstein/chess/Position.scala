@@ -128,7 +128,7 @@ case class Position(
     // File labels
     for (file <- 0 until 8) { print(s"  ${Location.fileToStr(file)}   ") }
     println()
-    for (rank <- 0 until 8) {
+    for (rank <- 7 to 0 by -1) {
       // Rank labels
       print(s"  ${Location.rankToStr(rank)}   ")
       for (file <- 0 until 8) {
