@@ -40,7 +40,7 @@ object Position {
 
   def create(moveStrings: List[String]): Position =
       moveStrings.foldLeft(Position.initial)
-          { case (pos, str) => Move.create(pos, str)(pos).get }
+          { case (pos, str) => Move.create(pos, str)(pos).right.get }
 }
 // NOTE: [history] is stored in reverse order, so [history.head] is the most
 // recent position.

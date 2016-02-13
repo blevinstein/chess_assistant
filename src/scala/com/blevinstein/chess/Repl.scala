@@ -17,7 +17,7 @@ object Repl extends App with Runnable {
       for (moveStr <- line.split(" ")) {
         try {
           val move = Move.create(currentPosition, moveStr)
-          currentPosition = move(currentPosition).get
+          currentPosition = move(currentPosition).right.get
         } catch {
           case e: Throwable => {
             print(foregroundRed)

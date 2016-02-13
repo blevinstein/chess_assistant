@@ -13,12 +13,22 @@ import com.blevinstein.chess.Location.{strToRank,strToFile}
 trait Move {
   // Returns the new state of the board after making [this] move.
   // Should return None if [this] is not a valid move.
-  def apply(position: Position): Option[Position]
+  def apply(position: Position): Either[InvalidReason, Position]
   // Returns true if [this] is is a legal move that could be made when the board
   // is in [position].
   // TODO: add post-move checks, e.g. moving King into check
-  def isLegal(position: Position): Boolean = apply(position) != None
+  def isLegal(position: Position): Boolean = apply(position).isRight
 }
+
+abstract class InvalidReason
+object CantCapture extends InvalidReason
+object MustCapture extends InvalidReason
+object SameColor extends InvalidReason
+object NoPieceAtSource extends InvalidReason
+case class CannotPromote(piece: Piece) extends InvalidReason
+case class OccludedBy(pieces: List[(Color, Piece)]) extends InvalidReason
+case class HasMoved(location: Location) extends InvalidReason
+case class InvalidArg[T](arg: T) extends InvalidReason
 
 object Move {
   def getDest(move: Move, filterCanCapture: Boolean = false): Option[Location] =
@@ -28,7 +38,7 @@ object Move {
         case LeaperMove(source, offset) => Some(source + offset)
         case RiderMove(source, offset, dest) => Some(source + mul(offset, dest))
         case PromotePawn(baseMove, _, _) => getDest(baseMove, filterCanCapture)
-        case _ => None
+        case Castle(_, _) => None // no single destination
       }
 
   def createSourcePredicate(str: String): Location => Boolean =
@@ -162,8 +172,11 @@ object Move {
         // Filter to only include legal moves
         filter{_.isLegal(position)}.
         // Filter to only include moves with the desired effect on [dest].
-        filter((move) =>
-            move(position).get.apply(dest) == Some(position.toMove, piece)).
+        filter((move) => move(position) match {
+          case Left(_) => false
+          case Right(newPosition) =>
+              newPosition(dest) == Some(position.toMove, piece)
+        }).
         // Apply promotion effects afterwards if necessary
         map(move => promote match {
           case None => move // TODO: Check for pawns needing to promote?
@@ -201,28 +214,34 @@ object Move {
       source: Location,
       dest: Location,
       canCapture: Boolean = true,
-      mustCapture: Boolean = false):
-      Option[Position] = {
-    if (source.isValid && dest.isValid) {
-      (position(source), position(dest)) match {
-        // Move to open space
-        case (Some((sourceColor, piece)), None)
-            if !mustCapture =>
-            Some(position.update(Map(
-                source -> None,
-                dest -> Some((sourceColor, piece)))))
-        // Capture
-        case (Some((sourceColor, piece)), Some((destColor, _)))
-            if sourceColor != destColor && canCapture =>
-            Some(position.update(Map(
-                source -> None,
-                dest -> Some((sourceColor, piece)))))
-        // Can't move
-        case _ => None
-      }
-    } else {
-      None
-    }
+      mustCapture: Boolean = false): Either[InvalidReason, Position] = {
+    if (!source.isValid)
+        Left(InvalidArg(source))
+    else if (!dest.isValid)
+        Left(InvalidArg(dest))
+    else (position(source), position(dest)) match {
+          case (Some((sourceColor, piece)), None) =>
+              if (mustCapture)
+                  Left(MustCapture)
+              else
+                  // Move to open space
+                  Right(position.update(Map(
+                      source -> None,
+                      dest -> Some((sourceColor, piece)))))
+
+          case (Some((sourceColor, piece)), Some((destColor, _))) =>
+              if (sourceColor == destColor)
+                Left(SameColor)
+              else if (!canCapture)
+                Left(CantCapture)
+              else
+                  // Capture
+                  Right(position.update(Map(
+                      source -> None,
+                      dest -> Some((sourceColor, piece)))))
+
+          case (None, _) => Left(NoPieceAtSource)
+        }
   }
 }
 
@@ -231,7 +250,7 @@ case class CustomMove(
     dest: Location,
     canCapture: Boolean = true,
     mustCapture: Boolean = false) extends Move {
-  def apply(position: Position): Option[Position] =
+  def apply(position: Position): Either[InvalidReason, Position] =
       Move.tryMove(
           position,
           source,
@@ -251,7 +270,7 @@ case class LeaperMove(source: Location, offset: (Int, Int)) extends Move {
   require(offset != (0, 0))
   require((source + offset).isValid)
 
-  def apply(position: Position): Option[Position] =
+  def apply(position: Position): Either[InvalidReason, Position] =
       Move.tryMove(position, source, source + offset)
 }
 
@@ -273,20 +292,22 @@ case class RiderMove(source: Location, offset: (Int, Int), dist: Int) extends
   require(dist > 0)
   require((source + Move.mul(offset, dist)).isValid)
 
-  def apply(position: Position): Option[Position] = {
+  def apply(position: Position): Either[InvalidReason, Position] = {
     val betweenPieces =
-        (1 until dist).flatMap(i => position(source + Move.mul(offset, i)))
+        (1 until dist).
+        flatMap(i => position(source + Move.mul(offset, i))).
+        toList
 
     if (betweenPieces.isEmpty) {
       Move.tryMove(position, source, source + Move.mul(offset, dist))
     } else {
-      None
+      Left(OccludedBy(betweenPieces))
     }
   }
 }
 
 case class Castle(color: Color, kingside: Boolean) extends Move {
-  def apply(position: Position): Option[Position] = {
+  def apply(position: Position): Either[InvalidReason, Position] = {
     val rank = if (color == White) 0 else 7
     val kingFile = 4
     val rookFile = if (kingside) 7 else 0
@@ -295,19 +316,24 @@ case class Castle(color: Color, kingside: Boolean) extends Move {
     val newKingFile = if (kingside) 6 else 2
 
     val betweenPieces = Move.between(kingFile, rookFile).
-        flatMap(i => position(Location(i, rank)))
+        flatMap(i => position(Location(i, rank))).
+        toList
 
-    if (betweenPieces.isEmpty &&
-        Move.firstMove(position, Location(rookFile, rank)) &&
-        Move.firstMove(position, Location(kingFile, rank))) {
-      Some(position.update(Map(
+    val rookPos = Location(rookFile, rank)
+    val kingPos = Location(kingFile, rank)
+
+    if (!betweenPieces.isEmpty)
+        Left(OccludedBy(betweenPieces))
+    else if (!Move.firstMove(position, rookPos))
+        Left(HasMoved(rookPos))
+    else if (!Move.firstMove(position, kingPos))
+        Left(HasMoved(kingPos))
+    else
+      Right(position.update(Map(
           Location(kingFile, rank) -> None,
           Location(rookFile, rank) -> None,
           Location(newKingFile, rank) -> Some(color, King),
           Location(newRookFile, rank) -> Some(color, Rook))))
-    } else {
-      None
-    }
   }
 }
 
@@ -315,12 +341,14 @@ case class PromotePawn(baseMove: Move, location: Location, newPiece: Piece)
     extends Move {
   require(List(Bishop, Knight, Rook, Queen).contains(newPiece))
 
-  def apply(position: Position): Option[Position] = {
-    val basePos: Position = baseMove(position).get
-    basePos(location) match {
-      case Some((color, Pawn)) =>
-          Some(basePos + (location, Some(color, newPiece)))
-      case _ => None
+  def apply(position: Position): Either[InvalidReason, Position] =
+      baseMove(position) match {
+        case Left(reason) => Left(reason)
+        case Right(baseResult) => baseResult(location) match {
+          case Some((color, Pawn)) =>
+              Right(baseResult + (location, Some(color, newPiece)))
+          case Some((_, piece)) => Left(CannotPromote(piece))
+          case None => Left(NoPieceAtSource)
     }
   }
 }
