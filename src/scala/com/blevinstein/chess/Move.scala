@@ -274,10 +274,10 @@ case class RiderMove(source: Location, offset: (Int, Int), dist: Int) extends
   require((source + Move.mul(offset, dist)).isValid)
 
   def apply(position: Position): Option[Position] = {
-    val emptyBetween = (1 until dist).
-        forall(i => position(source + Move.mul(offset, i)) == None)
+    val betweenPieces =
+        (1 until dist).flatMap(i => position(source + Move.mul(offset, i)))
 
-    if (emptyBetween) {
+    if (betweenPieces.isEmpty) {
       Move.tryMove(position, source, source + Move.mul(offset, dist))
     } else {
       None
@@ -294,10 +294,10 @@ case class Castle(color: Color, kingside: Boolean) extends Move {
     val newRookFile = if (kingside) 5 else 3
     val newKingFile = if (kingside) 6 else 2
 
-    val emptyBetween = Move.between(kingFile, rookFile).
-        forall(i => position(Location(i, rank)) == None)
+    val betweenPieces = Move.between(kingFile, rookFile).
+        flatMap(i => position(Location(i, rank)))
 
-    if (emptyBetween &&
+    if (betweenPieces.isEmpty &&
         Move.firstMove(position, Location(rookFile, rank)) &&
         Move.firstMove(position, Location(kingFile, rank))) {
       Some(position.update(Map(
