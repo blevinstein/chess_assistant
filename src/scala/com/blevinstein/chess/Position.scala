@@ -81,9 +81,6 @@ case class Position(
   def getAllMoves: List[Move] =
       getMovesFrom(Location.values) ++ getCastleMoves
 
-  // TODO: rm if unused
-  // def getValidMoves: List[Move] = getAllMoves.filter{_.isLegal(this)}
-
   // TODO: test
   def isAttacking(a: Location, b: Location): Boolean =
       getMovesFrom(List(a)).
