@@ -87,7 +87,7 @@ case class Position(
           exists{Move.getDest(_, filterCanCapture = true) == Some(b)} &&
       apply(a) != None &&
       apply(b) != None &&
-      apply(a).get._1 != apply(b).get._1
+      apply(a).get._1 != apply(b).get._1 // different color
 
   // TODO: test
   def isDefending(a: Location, b: Location): Boolean =
@@ -95,7 +95,7 @@ case class Position(
           exists{Move.getDest(_, filterCanCapture = true) == Some(b)} &&
       apply(a) != None &&
       apply(b) != None &&
-      apply(a).get._1 == apply(b).get._1
+      apply(a).get._1 == apply(b).get._1 // same color
 
   // TODO: test
   def getAttackers(location: Location): List[(Color, Piece, Location)] =
@@ -110,7 +110,7 @@ case class Position(
   def getDefenders(location: Location): List[(Color, Piece, Location)] =
       Location.values.filter{isDefending(_, location)}.flatMap{
             loc => apply(loc) match {
-              case Some((color, piece)) => Some((color, piece, loc))
+              case Some((color, piece)) => Some(color, piece, loc)
               case None => ???
             }
           }
