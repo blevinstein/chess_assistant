@@ -26,6 +26,10 @@ object MustCapture extends InvalidReason
 object SameColor extends InvalidReason
 object NoPieceAtSource extends InvalidReason
 case class CannotPromote(piece: Piece) extends InvalidReason
+// TODO: Think about redesigning OccludeBy to support generalized attack network
+// analysis. I.e., we want to be able to represent "A pinned to B by C, C is
+// attacking D, D is attacked by B" but currently OccludedBy only keeps Color
+// and Piece, not Location.
 case class OccludedBy(pieces: List[(Color, Piece)]) extends InvalidReason
 case class HasMoved(location: Location) extends InvalidReason
 case class InvalidArg[T](arg: T) extends InvalidReason
