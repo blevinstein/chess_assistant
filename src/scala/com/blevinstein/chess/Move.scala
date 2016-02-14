@@ -7,8 +7,6 @@ import com.blevinstein.chess.Location.{strToRank,strToFile}
 //    available moves.
 // 2. Castling. Moves two pieces at once, is only allowed under specific
 //    conditions. (Any other exceptions?)
-//
-// Not yet implemented: en passant
 
 trait Move {
   // Returns the new state of the board after making [this] move.
@@ -25,8 +23,9 @@ object CantCapture extends InvalidReason
 object MustCapture extends InvalidReason
 object SameColor extends InvalidReason
 object NoPieceAtSource extends InvalidReason
-case class CannotPromote(piece: Piece) extends InvalidReason
-// TODO: Think about redesigning OccludeBy to support generalized attack network
+case class WrongPiece(expected: List[Piece], actual: Piece)
+    extends InvalidReason
+// TODO: Think about redesigning OccludedBy to support generalized attack network
 // analysis. I.e., we want to be able to represent "A pinned to B by C, C is
 // attacking D, D is attacked by B" but currently OccludedBy only keeps Color
 // and Piece, not Location.
@@ -42,6 +41,7 @@ object Move {
         case LeaperMove(source, offset) => Some(source + offset)
         case RiderMove(source, offset, dest) => Some(source + mul(offset, dest))
         case PromotePawn(baseMove, _, _) => getDest(baseMove, filterCanCapture)
+        case EnPassant(source, dest) => Some(dest)
         case Castle(_, _) => None // no single destination
       }
 
@@ -263,6 +263,44 @@ case class CustomMove(
           mustCapture = mustCapture)
 }
 
+case class EnPassant(source: Location, dest: Location) extends Move {
+  require((source.rank == 3 && dest.rank == 2) ||
+      (source.rank == 4 && dest.rank == 5))
+  require(source.file + 1 == dest.file || source.file - 1 == dest.file)
+
+  val targetLastPos =
+      Location(dest.file, dest.rank match { case 2 => 1; case 5 => 6 })
+
+  val targetNowPos =
+      Location(dest.file, dest.rank match { case 2 => 3; case 5 => 4 })
+
+  def apply(position: Position): Either[InvalidReason, Position] = {
+    (position(source),
+        position(dest),
+        position.history.head(targetLastPos),
+        position.history.head(targetNowPos),
+        position(targetLastPos),
+        position(targetNowPos)) match {
+      case (Some((colorA, Pawn)),
+          None,
+          Some((colorB1, Pawn)),
+          None,
+          None,
+          Some((colorB2, Pawn)))
+          if colorA == !colorB1 && colorB1 == colorB2 =>
+              Right(position.update(Map(
+                  source -> None,
+                  dest -> Some(colorA, Pawn),
+                  targetNowPos -> None)))
+      case (None, _, _, _, _, _) => Left(NoPieceAtSource)
+      case (_, Some(cp), _, _, _, _) => Left(OccludedBy(List(cp)))
+      // else, one of the four remaining conditions are not met, i.e. this is
+      // NOT a situation where en passant is applicable
+      case _ => Left(MustCapture)
+    }
+  }
+}
+
 object LeaperMove {
   def all(source: Location, offset: (Int, Int)): List[LeaperMove] =
       Move.allTransformations(offset).
@@ -351,7 +389,7 @@ case class PromotePawn(baseMove: Move, location: Location, newPiece: Piece)
         case Right(baseResult) => baseResult(location) match {
           case Some((color, Pawn)) =>
               Right(baseResult + (location, Some(color, newPiece)))
-          case Some((_, piece)) => Left(CannotPromote(piece))
+          case Some((_, piece)) => Left(WrongPiece(List(Pawn), piece))
           case None => Left(NoPieceAtSource)
     }
   }

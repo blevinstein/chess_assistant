@@ -21,16 +21,22 @@ object Pawn extends Piece {
     val left = (-1, 0)
     val right = (1, 0)
 
-    // TODO: add en passant
     (List(CustomMove(location, location + forward, canCapture = false),
-            CustomMove(location, location + forward + left, mustCapture = true),
-            CustomMove(location, location + forward + right, mustCapture = true))
-            ++
-            (if (Move.firstMove(position, location))
-                List(CustomMove(location,
-                    location + forward + forward,
-                    canCapture = false))
-            else List.empty))
+        CustomMove(location, location + forward + left, mustCapture = true),
+        CustomMove(location, location + forward + right, mustCapture = true))
+        ++
+        (if (Move.firstMove(position, location))
+            List(CustomMove(location,
+                location + forward + forward,
+                canCapture = false))
+        else List.empty)
+        ++
+        (if ((pieceColor == White && location.rank == 4) ||
+            (pieceColor == Black && location.rank == 3))
+            List(EnPassant(location, location + forward + left),
+                EnPassant(location, location + forward + right))
+        else List.empty)
+    )
   }
 }
 

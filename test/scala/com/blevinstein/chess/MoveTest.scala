@@ -226,4 +226,61 @@ class MoveTest extends FunSuite with Matchers {
         Location("g3") -> Some(White, Pawn),
         Location("h2") -> Some(White, Pawn))
   }
+
+  test("http://www.chessgames.com/perl/chessgame?gid=1410669 en passant") {
+    val pos = Position.create(List(
+        "e4", "c5",
+        "Nf3", "e6",
+        "d4", "cd4",
+        "Nd4", "a6",
+        "Nc3", "Qc7", // 5
+        "Bd3", "Nf6",
+        "O-O", "Bc5",
+        "Nb3", "Be7",
+        "f4", "d6",
+        "a4", "Nc6", // 10
+        "a5", "b5",
+        "ab6", "Qb6",
+        "Kh1", "O-O",
+        "Qe2", "a5",
+        "Be3", "Qc7", // 15
+        "Nb5", "Qb8",
+        "c3", "d5",
+        "e5", "Ne4",
+        "Be4", "de4",
+        "Nc5", "Bc5", // 20
+        "Bc5", "Ba6",
+        "c4", "Rd8",
+        "Nd6", "f5",
+        "ef6", "Rd6",
+        "Qe4", "Bb7", // 25
+        "Bd6", "Qd6",
+        "Rad1", "Nd8",
+        "f7", "Kf7",
+        "Qh7", "Qc6",
+        "Rf2", "Qe4", // 30
+        "f5", "e5",
+        "Rfd2", "Bc6",
+        "Qg6", "Ke7",
+        "Rd7"))
+
+    cleanup(pos).map shouldEqual Map(
+        Location("a8") -> Some(Black, Rook),
+        Location("a5") -> Some(Black, Pawn),
+        Location("c6") -> Some(Black, Bishop),
+        Location("d8") -> Some(Black, Knight),
+        Location("e7") -> Some(Black, King),
+        Location("e5") -> Some(Black, Pawn),
+        Location("e4") -> Some(Black, Queen),
+        Location("g7") -> Some(Black, Pawn),
+        Location("b2") -> Some(White, Pawn),
+        Location("c4") -> Some(White, Pawn),
+        Location("d1") -> Some(White, Rook),
+        Location("d7") -> Some(White, Rook),
+        Location("f5") -> Some(White, Pawn),
+        Location("g6") -> Some(White, Queen),
+        Location("g2") -> Some(White, Pawn),
+        Location("h2") -> Some(White, Pawn),
+        Location("h1") -> Some(White, King))
+  }
 }

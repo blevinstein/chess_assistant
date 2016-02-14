@@ -29,7 +29,6 @@ Scala Rewrite
 Projects:
 
 TODO: Audit existing polymer code
-TODO: En passant
 TODO: Design check avoidance (hard)
   - King cannot move into check
   - King cannot pass through check while castling
