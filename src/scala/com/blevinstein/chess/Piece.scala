@@ -7,9 +7,10 @@ trait Piece {
   override def toString: String = this.getClass.getSimpleName
 }
 object Piece {
-  val byLetter: Map[String, Piece] = List(Pawn, Knight, Bishop, Rook, Queen, King).
-      map(piece => piece.letter -> piece)
-      .toMap
+  val byLetter: Map[String, Piece] =
+      List(Pawn, Knight, Bishop, Rook, Queen, King).
+      map(piece => piece.letter -> piece).
+      toMap
 }
 
 object Pawn extends Piece {
