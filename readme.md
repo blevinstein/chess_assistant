@@ -3,6 +3,10 @@ README
 
 Simple chess assistant. Helps the player visualize the board.
 
+Install dependencies:
+
+> sbt update
+
 To run on command line:
 
 > sbt repl
@@ -16,7 +20,7 @@ To run tests:
 > sbt test
 
 TODO
-====
+----
 
 - Reimplement threat calculation.
   - Difficult because defending moves arent legal.
@@ -33,9 +37,13 @@ TODO: Research algorithms for coloring the board
 TODO: def Move.chessNotation: String, generate compact but unambiguous notation
 
 OLD Readme
-----------
+==========
 
 OLD implementation in Racket. NEW implementation in Scala.
+
+Install dependencies (requires bower):
+
+> bower update
 
 To run on command line:
 
