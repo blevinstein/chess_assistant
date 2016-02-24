@@ -5,22 +5,18 @@ Simple chess assistant. Helps the player visualize the board.
 
 To run on command line:
 
-> racket src/repl.rkt
+> sbt repl
 
 To run in browser:
 
-> ./serve.sh
-(then navigate to http://localhost:8000)
+> sbt server
 
 To run tests:
 
-> racket src/chess-test.rkt
+> sbt test
 
 TODO
 ====
-
-Scala Rewrite
--------------
 
 - Reimplement threat calculation.
   - Difficult because defending moves arent legal.
@@ -36,8 +32,26 @@ TODO: Design check avoidance (hard)
 TODO: Research algorithms for coloring the board
 TODO: def Move.chessNotation: String, generate compact but unambiguous notation
 
-Old TODO List
--------------
+OLD Readme
+----------
+
+OLD implementation in Racket. NEW implementation in Scala.
+
+To run on command line:
+
+> racket src/racket/repl.rkt
+
+To run in browser:
+
+> ./serve-racket.sh
+(then navigate to http://localhost:8000)
+
+To run tests:
+
+> racket src/racket/chess-test.rkt
+
+TODO
+----
 
 - servlet
   - add ability to rotate board
