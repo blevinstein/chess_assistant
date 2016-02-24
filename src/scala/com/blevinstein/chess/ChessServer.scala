@@ -60,7 +60,7 @@ class ChessServlet extends Actor with HttpService {
   val chessService =
       pathEndOrSingleSlash {
         get {
-          getFromFile("src/html/index.html")
+          getFromFile("src/html/v2/index.html")
         }
       } ~
       path("new-board") {
@@ -69,7 +69,8 @@ class ChessServlet extends Actor with HttpService {
             Position.initial.toJson.toString
           }
         }
-      }
+      } ~
+      getFromDirectory("src/html/v2")
 }
 
 object ChessServer extends App {
