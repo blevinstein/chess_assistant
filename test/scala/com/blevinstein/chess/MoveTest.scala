@@ -1,5 +1,7 @@
 package com.blevinstein.chess
 
+import com.blevinstein.chess.LocationImplicits._
+
 import org.scalatest._
 
 class MoveTest extends FunSuite with Matchers {
@@ -14,11 +16,11 @@ class MoveTest extends FunSuite with Matchers {
     val pos = Position.initial.
         update(Map(Location("a1") -> None, Location("a4") -> Some(White, Rook)))
 
-    Move.firstMove(pos, Location("a1")) shouldEqual false
-    Move.firstMove(pos, Location("h1")) shouldEqual true
+    Move.firstMove(pos, "a1") shouldEqual false
+    Move.firstMove(pos, "h1") shouldEqual true
 
-    Move.firstMove(pos, Location("a8")) shouldEqual true
-    Move.firstMove(pos, Location("h8")) shouldEqual true
+    Move.firstMove(pos, "a8") shouldEqual true
+    Move.firstMove(pos, "h8") shouldEqual true
   }
 
   test("allTransformations") {
@@ -38,22 +40,22 @@ class MoveTest extends FunSuite with Matchers {
   }
 
   test("LeaperMove") {
-    val pos = LeaperMove(Location("b1"), (1, 2))(Position.initial).right.get
-    pos(Location("b1")) shouldEqual None
-    pos(Location("c3")) shouldEqual Some(White, Knight)
+    val pos = LeaperMove("b1", (1, 2))(Position.initial).right.get
+    pos("b1") shouldEqual None
+    pos("c3") shouldEqual Some(White, Knight)
 
-    LeaperMove(Location("b8"), (1, -2)).isLegal(pos) shouldEqual true
-    LeaperMove(Location("b8"), (2, -1)).isLegal(pos) shouldEqual false
+    LeaperMove("b8", (1, -2)).isLegal(pos) shouldEqual true
+    LeaperMove("b8", (2, -1)).isLegal(pos) shouldEqual false
   }
 
   test("RiderMove") {
-    val pos = RiderMove(Location("b2"), (1, 1), 3)(Position.initial).right.get
-    pos(Location("b2")) shouldEqual None
-    pos(Location("e5")) shouldEqual Some(White, Pawn)
+    val pos = RiderMove("b2", (1, 1), 3)(Position.initial).right.get
+    pos("b2") shouldEqual None
+    pos("e5") shouldEqual Some(White, Pawn)
 
-    RiderMove(Location("e5"), (1, 1), 1).isLegal(pos) shouldEqual true
-    RiderMove(Location("e5"), (1, 1), 2).isLegal(pos) shouldEqual true
-    RiderMove(Location("e5"), (1, 1), 3).isLegal(pos) shouldEqual false
+    RiderMove("e5", (1, 1), 1).isLegal(pos) shouldEqual true
+    RiderMove("e5", (1, 1), 2).isLegal(pos) shouldEqual true
+    RiderMove("e5", (1, 1), 3).isLegal(pos) shouldEqual false
   }
 
   test("Castle") {
@@ -78,24 +80,24 @@ class MoveTest extends FunSuite with Matchers {
   test("Move.create - initial position") {
     val pos = Position.initial
     Move.create(pos, "a3") shouldEqual
-        CustomMove(Location("a2"), Location("a3"), canCapture = false)
+        CustomMove("a2", "a3", canCapture = false)
     Move.create(pos, "a4") shouldEqual
-        CustomMove(Location("a2"), Location("a4"), canCapture = false)
-    Move.create(pos, "Nc3") shouldEqual LeaperMove(Location("b1"), (1, 2))
+        CustomMove("a2", "a4", canCapture = false)
+    Move.create(pos, "Nc3") shouldEqual LeaperMove("b1", (1, 2))
   }
 
   test("Move.create - e4 opening") {
     val pos1 = Move.create(Position.initial, "e4")(Position.initial).right.get
     val pos2 = Move.create(pos1, "e5")(pos1).right.get
-    Move.create(pos2, "Qg4") shouldEqual RiderMove(Location("d1"), (1, 1), 3)
-    Move.create(pos2, "Ba6") shouldEqual RiderMove(Location("f1"), (-1, 1), 5)
-    Move.create(pos2, "Ne2") shouldEqual LeaperMove(Location("g1"), (-2, 1))
+    Move.create(pos2, "Qg4") shouldEqual RiderMove("d1", (1, 1), 3)
+    Move.create(pos2, "Ba6") shouldEqual RiderMove("f1", (-1, 1), 5)
+    Move.create(pos2, "Ne2") shouldEqual LeaperMove("g1", (-2, 1))
   }
 
   test("Move.create - e4 Nf3 Bd3 opening") {
     val pos = Position.create(List("e4", "e5", "Nf3", "Nf6", "Bd3", "Bd6"))
     Move.create(pos, "O-O") shouldEqual Castle(White, kingside = true)
-    Move.create(pos, "Rf1") shouldEqual RiderMove(Location("h1"), (-1, 0), 2)
+    Move.create(pos, "Rf1") shouldEqual RiderMove("h1", (-1, 0), 2)
   }
 
   test("createSourcePredicate") {

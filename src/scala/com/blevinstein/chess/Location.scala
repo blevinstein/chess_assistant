@@ -2,6 +2,12 @@ package com.blevinstein.chess
 
 import com.blevinstein.util.BiMap
 
+import scala.language.implicitConversions
+
+object LocationImplicits {
+  implicit def stringToLocation(s: String): Location = Location(s)
+}
+
 object Location {
   def apply(str: String): Location = Location(
       fileToStr.inverse(str.substring(0, 1)),
