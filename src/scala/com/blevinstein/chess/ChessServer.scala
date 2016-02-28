@@ -22,6 +22,7 @@ object ChessJsonProtocol extends DefaultJsonProtocol {
     def read(json: JsValue): Color = json match {
       case JsString("black") => Black
       case JsString("white") => White
+      case _ => ???
     }
     def write(color: Color): JsValue = color match {
       case Black => JsString("black")
@@ -32,6 +33,7 @@ object ChessJsonProtocol extends DefaultJsonProtocol {
   implicit object LocationFormat extends RootJsonFormat[Location] {
     def read(json: JsValue): Location = json match {
       case JsString(str) => Location(str)
+      case _ => ???
     }
     def write(loc: Location): JsValue = JsString(loc.toString)
   }
@@ -39,6 +41,7 @@ object ChessJsonProtocol extends DefaultJsonProtocol {
   implicit object PieceFormat extends RootJsonFormat[Piece] {
     def read(json: JsValue): Piece = json match {
       case JsString(letter) => Piece.byLetter(letter)
+      case _ => ???
     }
     def write(piece: Piece): JsValue = JsString(piece.letter)
   }
