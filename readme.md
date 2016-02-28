@@ -67,9 +67,3 @@ TODO
   - lance
   - hidden attack
 - attacked by lower value piece
-
-- pawn promotion
-- history (list of positions)
-  - castling
-  - en passant
-- check, checkmate, draw
