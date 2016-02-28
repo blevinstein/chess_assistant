@@ -48,6 +48,7 @@ case class Position(
     map: Map[Location, Option[(Color, Piece)]],
     toMove: Color,
     history: List[Position]) {
+  import com.blevinstein.chess.Move.getDest
   import com.blevinstein.chess.TerminalHelper._
 
   // delegate to [map]
@@ -81,23 +82,51 @@ case class Position(
   def getAllMoves: List[Move] =
       getMovesFrom(Location.values) ++ getCastleMoves
 
-  // TODO: test
-  def isAttacking(a: Location, b: Location): Boolean =
-      getMovesFrom(List(a)).
-          exists{Move.getDest(_, filterCanCapture = true) == Some(b)} &&
-      apply(a) != None &&
-      apply(b) != None &&
-      apply(a).get._1 != apply(b).get._1 // different color
+  // Returns true is there is a piece at [src] which is "attacking" location
+  // [dest]. We consider this to be true if the piece at [src] can theoretically
+  // move to [dest], and [dest] is either empty or contains an enemy, and there
+  // are no other pieces blocking this move.
+  def isAttacking(src: Location, dest: Location): Boolean =
+      if (apply(src) != None &&
+          apply(dest) != None &&
+          apply(dest).get._1 == apply(src).get._1) {
+        // piece of same color at destination
+        false
+      } else {
+        getMovesFrom(List(src)).
+            filter{getDest(_, filterCanCapture = true) == Some(dest)}.
+            filter(move => move(this) match {
+              case Right(_) => true // legal moves
+              case Left(MustCapture) => true // pawns attacking empty space
+              case Left(OccludedBy(_)) => false // path is blocked
+              case Left(_) => false
+            }).
+            isEmpty.unary_!
+      }
 
-  // TODO: test
-  def isDefending(a: Location, b: Location): Boolean =
-      getMovesFrom(List(a)).
-          exists{Move.getDest(_, filterCanCapture = true) == Some(b)} &&
-      apply(a) != None &&
-      apply(b) != None &&
-      apply(a).get._1 == apply(b).get._1 // same color
+  // Returns true is there is a piece at [src] which is "attacking" location
+  // [dest]. We consider this to be true if the piece at [src] can theoretically
+  // move to [dest], and [dest] is either empty or contains a friend, and there
+  // are no other pieces blocking this move.
+  def isDefending(src: Location, dest: Location): Boolean =
+      if (apply(src) != None &&
+          apply(dest) != None &&
+          apply(dest).get._1 != apply(src).get._1) {
+        // piece of different color at destination
+        false
+      } else {
+        getMovesFrom(List(src)).
+            filter{getDest(_, filterCanCapture = true) == Some(dest)}.
+            filter(move => move(this) match {
+              case Left(SameColor) => true // defending other pieces
+              case Right(_) => true // legal moves to empty space
+              case Left(MustCapture) => true // pawns attacking empty space
+              case Left(OccludedBy(_)) => false // path is blocked
+              case Left(_) => false
+            }).
+            isEmpty.unary_!
+      }
 
-  // TODO: test
   def getAttackers(location: Location): List[(Color, Piece, Location)] =
       Location.values.filter{isAttacking(_, location)}.flatMap{
             loc => apply(loc) match {
@@ -106,7 +135,6 @@ case class Position(
             }
           }
 
-  // TODO: test
   def getDefenders(location: Location): List[(Color, Piece, Location)] =
       Location.values.filter{isDefending(_, location)}.flatMap{
             loc => apply(loc) match {

@@ -22,19 +22,14 @@ To run tests:
 TODO
 ----
 
-- Reimplement threat calculation.
-  - Difficult because defending moves arent legal.
-- Reimplement server functionality.
-
-Projects:
-
-TODO: Audit existing polymer code
-TODO: Design check avoidance (hard)
-  - King cannot move into check
-  - King cannot pass through check while castling
-  - A piece that has been pinned to the King can only move along the pin
-TODO: Research algorithms for coloring the board
-TODO: def Move.chessNotation: String, generate compact but unambiguous notation
+- Add special treatment of King
+  - Position#inCheck(color: Color = toMove)
+  - CantMoveIntoCheck(threats: List[Location]) extends InvalidReason
+  - Cant move through check while castling
+- implicit def createLocation(s: String): Location
+- Reimplement server in React.
+- Research algorithms for coloring the board
+- def Move.chessNotation: String, generate compact but unambiguous notation
 
 OLD Readme
 ==========

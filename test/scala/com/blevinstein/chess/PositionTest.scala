@@ -81,4 +81,53 @@ class PositionTest extends FunSuite with Matchers {
     pos.getAllMoves.contains(Castle(Black, true)) shouldEqual true
     pos.getAllMoves.contains(Castle(Black, false)) shouldEqual true
   }
+
+  test("isAttacking") {
+    val pos = Position(
+        Map(Location("d1") -> Some(White, Queen),
+            Location("c2") -> Some(White, Pawn),
+            Location("d3") -> Some(White, Pawn),
+            Location("a4") -> Some(White, Pawn),
+            Location("d4") -> Some(Black, Queen)).withDefaultValue(None),
+        White,
+        List.empty)
+
+    // White queen
+    pos.isAttacking(Location("d1"), Location("c2")) shouldEqual false
+    pos.isAttacking(Location("d1"), Location("d3")) shouldEqual false
+    pos.isAttacking(Location("d1"), Location("a4")) shouldEqual false
+    pos.isAttacking(Location("d1"), Location("d4")) shouldEqual false
+    pos.isAttacking(Location("d1"), Location("g4")) shouldEqual true
+
+    // Black queen
+    pos.isAttacking(Location("d4"), Location("d1")) shouldEqual false
+    pos.isAttacking(Location("d4"), Location("d3")) shouldEqual true
+    pos.isAttacking(Location("d4"), Location("a4")) shouldEqual true
+    pos.isAttacking(Location("d4"), Location("c2")) shouldEqual false
+    pos.isAttacking(Location("d4"), Location("g4")) shouldEqual true
+  }
+
+  test("isDefending") {
+    val pos = Position(
+        Map(Location("d1") -> Some(White, Queen),
+            Location("c2") -> Some(White, Pawn),
+            Location("d3") -> Some(White, Pawn),
+            Location("a4") -> Some(White, Pawn),
+            Location("d4") -> Some(Black, Queen)).withDefaultValue(None),
+        White,
+        List.empty)
+
+    pos.isDefending(Location("d1"), Location("c2")) shouldEqual true
+    pos.isDefending(Location("d1"), Location("d3")) shouldEqual true
+    pos.isDefending(Location("d1"), Location("a4")) shouldEqual false
+    pos.isDefending(Location("d1"), Location("d4")) shouldEqual false
+    pos.isDefending(Location("d1"), Location("g4")) shouldEqual true
+
+    // Black queen
+    pos.isDefending(Location("d4"), Location("d1")) shouldEqual false
+    pos.isDefending(Location("d4"), Location("d3")) shouldEqual false
+    pos.isDefending(Location("d4"), Location("a4")) shouldEqual false
+    pos.isDefending(Location("d4"), Location("c2")) shouldEqual false
+    pos.isDefending(Location("d4"), Location("g4")) shouldEqual true
+  }
 }

@@ -274,6 +274,7 @@ case class EnPassant(source: Location, dest: Location) extends Move {
   val targetNowPos =
       Location(dest.file, dest.rank match { case 2 => 3; case 5 => 4 })
 
+  // TODO: refactor to make more readable, this is awful
   def apply(position: Position): Either[InvalidReason, Position] = {
     (position(source),
         position(dest),
