@@ -26,7 +26,6 @@ TODO
   - Position#inCheck(color: Color = toMove)
   - CantMoveIntoCheck(threats: List[Location]) extends InvalidReason
   - Cant move through check while castling
-- implicit def createLocation(s: String): Location
 - Reimplement server in React.
 - Research algorithms for coloring the board
 - def Move.chessNotation: String, generate compact but unambiguous notation
