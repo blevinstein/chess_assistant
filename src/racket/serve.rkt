@@ -14,7 +14,9 @@
     #:launch-browser? #f
     #:port 8000
     #:server-root-path (build-path (current-directory) "src/html")
-    #:extra-files-paths (list (build-path (current-directory) "src/html/v1"))
+    #:extra-files-paths (list
+        (build-path (current-directory) "src/html/v1")
+        (build-path (current-directory) "src/html/bower_components"))
     #:servlet-regexp #rx""))
     ;#:listen-ip "::1"))
     ;#:listen-ip "2001:4978:f:683::2"))
