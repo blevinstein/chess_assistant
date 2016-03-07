@@ -10,6 +10,8 @@ import akka.util.Timeout
 import scala.concurrent.duration._
 import spray.can.Http
 import spray.http._
+import spray.http.CacheDirectives._
+import spray.http.HttpHeaders._
 import spray.http.HttpMethods._
 import spray.http.Uri
 import spray.httpx.SprayJsonSupport
@@ -62,8 +64,10 @@ class ChessServlet extends Actor with HttpService {
 
   val chessService =
       pathEndOrSingleSlash {
-        get {
-          getFromFile("src/html/v2/index.html")
+        respondWithHeaders(`Cache-Control`(`no-cache`, `no-store`, `must-revalidate`)) {
+          get {
+            getFromFile("src/html/v2/index.html")
+          }
         }
       } ~
       path("new-board") {
