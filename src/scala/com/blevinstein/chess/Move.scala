@@ -34,15 +34,22 @@ case class HasMoved(location: Location) extends InvalidReason
 case class InvalidArg[T](arg: T) extends InvalidReason
 
 object Move {
-  def getDest(move: Move, filterCanCapture: Boolean = false): Option[Location] =
+  def getSource(move: Move): Location = move match {
+        case CustomMove(source, _, _, _) => source
+        case LeaperMove(source, _) => source
+        case RiderMove(source, _, _) => source
+        case PromotePawn(baseMove, _, _) => getSource(baseMove)
+        case EnPassant(source, _) => source
+        case castle: Castle => castle.kingPos
+  }
+  def getDest(move: Move): Location =
       move match {
-        case CustomMove(_, dest, canCapture, _) =>
-            if (!filterCanCapture || canCapture) Some(dest) else None
-        case LeaperMove(source, offset) => Some(source + offset)
-        case RiderMove(source, offset, dest) => Some(source + mul(offset, dest))
-        case PromotePawn(baseMove, _, _) => getDest(baseMove, filterCanCapture)
-        case EnPassant(source, dest) => Some(dest)
-        case Castle(_, _) => None // no single destination
+        case CustomMove(_, dest, _, _) => dest
+        case LeaperMove(source, offset) => source + offset
+        case RiderMove(source, offset, dist) => source + mul(offset, dist)
+        case PromotePawn(baseMove, _, _) => getDest(baseMove)
+        case EnPassant(source, dest) => dest
+        case castle: Castle => castle.newKingPos
       }
 
   def createSourcePredicate(str: String): Location => Boolean =
@@ -349,21 +356,30 @@ case class RiderMove(source: Location, offset: (Int, Int), dist: Int) extends
   }
 }
 
+object Castle {
+  def getAll: List[Move] =
+      List(Castle(White, true),
+          Castle(White, false),
+          Castle(Black, true),
+          Castle(Black, false))
+}
 case class Castle(color: Color, kingside: Boolean) extends Move {
+  val rank = if (color == White) 0 else 7
+  val kingFile = 4
+  val rookFile = if (kingside) 7 else 0
+
+  val newRookFile = if (kingside) 5 else 3
+  val newKingFile = if (kingside) 6 else 2
+
+  val rookPos = Location(rookFile, rank)
+  val kingPos = Location(kingFile, rank)
+  val newRookPos = Location(newRookFile, rank)
+  val newKingPos = Location(newKingFile, rank)
+
   def apply(position: Position): Either[InvalidReason, Position] = {
-    val rank = if (color == White) 0 else 7
-    val kingFile = 4
-    val rookFile = if (kingside) 7 else 0
-
-    val newRookFile = if (kingside) 5 else 3
-    val newKingFile = if (kingside) 6 else 2
-
     val betweenPieces = Move.between(kingFile, rookFile).
         flatMap(i => position(Location(i, rank))).
         toList
-
-    val rookPos = Location(rookFile, rank)
-    val kingPos = Location(kingFile, rank)
 
     if (!betweenPieces.isEmpty)
         Left(OccludedBy(betweenPieces))
@@ -373,10 +389,10 @@ case class Castle(color: Color, kingside: Boolean) extends Move {
         Left(HasMoved(kingPos))
     else
       Right(position.update(Map(
-          Location(kingFile, rank) -> None,
-          Location(rookFile, rank) -> None,
-          Location(newKingFile, rank) -> Some(color, King),
-          Location(newRookFile, rank) -> Some(color, Rook))))
+          rookPos -> None,
+          newRookPos -> Some(color, Rook),
+          kingPos -> None,
+          newKingPos -> Some(color, King))))
   }
 }
 

@@ -66,12 +66,6 @@ case class Position(
 
   def rewind: Position = Position(history.head.map, !toMove, history.tail)
 
-  def getCastleMoves: List[Move] =
-      List(Castle(White, true),
-          Castle(White, false),
-          Castle(Black, true),
-          Castle(Black, false)).filter{_.isLegal(this)}
-
   // Gets all moves from pieces at the specified locations.
   def getMovesFrom(locations: List[Location]): List[Move] =
       locations.flatMap((loc: Location) => apply(loc) match {
@@ -79,8 +73,7 @@ case class Position(
         case Some((color, piece)) => Some((color, piece, loc))
       }).flatMap{ case (color, piece, loc) => piece.getMoves(this, loc) }
 
-  def getAllMoves: List[Move] =
-      getMovesFrom(Location.values) ++ getCastleMoves
+  def getAllMoves: List[Move] = getMovesFrom(Location.values)
 
   // Returns true is there is a piece at [src] which is "attacking" location
   // [dest]. We consider this to be true if the piece at [src] can theoretically
@@ -94,7 +87,7 @@ case class Position(
         false
       } else {
         getMovesFrom(List(src)).
-            filter{getDest(_, filterCanCapture = true) == Some(dest)}.
+            filter{getDest(_) == dest}.
             filter(move => move(this) match {
               case Right(_) => true // legal moves
               case Left(MustCapture) => true // pawns attacking empty space
@@ -116,7 +109,7 @@ case class Position(
         false
       } else {
         getMovesFrom(List(src)).
-            filter{getDest(_, filterCanCapture = true) == Some(dest)}.
+            filter{getDest(_) == dest}.
             filter(move => move(this) match {
               case Left(SameColor) => true // defending other pieces
               case Right(_) => true // legal moves to empty space

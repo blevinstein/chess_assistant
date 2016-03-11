@@ -68,5 +68,7 @@ object Queen extends Piece {
 object King extends Piece {
   def letter: String = "K"
   def getMoves(position: Position, location: Location): List[Move] =
-      (LeaperMove.all(location, (1, 1)) ++ LeaperMove.all(location, (0, 1)))
+      LeaperMove.all(location, (1, 1)) ++
+      LeaperMove.all(location, (0, 1)) ++
+      Castle.getAll.filter{_.isLegal(position)}
 }
