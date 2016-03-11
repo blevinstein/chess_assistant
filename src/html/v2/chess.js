@@ -85,7 +85,7 @@ window.ChessSquare = React.createClass({
 window.ChessBoard = React.createClass({
   componentDidMount() {
     var self = this;
-    $.get("/new-board", function(data, status) {
+    $.get("/new-board", function(data) {
       self.setState(JSON.parse(data));
     });
   },
@@ -96,15 +96,18 @@ window.ChessBoard = React.createClass({
       <div style={boardStyle}>
         {allLocations().map(function (row) {
           return (
-            <div style={rowStyle}>
+            <div style={rowStyle} key={"row" + row}>
               {row.map(function (loc) {
                 if (self.state && self.state.map && self.state.map[loc]) {
                   return <ChessSquare
+                      background={getBackground(loc)}
                       color={self.state.map[loc][0]}
-                      piece={self.state.map[loc][1]}
-                      background={getBackground(loc)} />;
+                      key={loc}
+                      piece={self.state.map[loc][1]} />;
                 } else {
-                  return <ChessSquare background={getBackground(loc)} />;
+                  return <ChessSquare
+                      background={getBackground(loc)}
+                      key={loc} />;
                 }
               })}
             </div>
