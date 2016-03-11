@@ -1,5 +1,7 @@
 var boardStyle = {
-  "border": "5px solid black"
+  "border": "5px solid black",
+  "height": 800,
+  "width": 800
 };
 
 var textStyle = {
@@ -72,28 +74,38 @@ window.ChessSquare = React.createClass({
     return (
       <svg width="100" height="100">
         <rect width="100" height="100" fill={getCssColor(this.props.background)}></rect>
-        {this.props.piece != undefined
-            ? <text style={textStyle} x="50" y="50" fontSize="50">
-                {getCharacter(this.props.color, this.props.piece)}
-            </text>
-            : ""}
+        <text style={textStyle} x="50" y="50" fontSize="50">
+          {this.props.piece ? getCharacter(this.props.color, this.props.piece) : ""}
+        </text>
       </svg>
     );
   }
 });
 
 window.ChessBoard = React.createClass({
+  componentDidMount() {
+    var self = this;
+    $.get("/new-board", function(data, status) {
+      self.setState(JSON.parse(data));
+    });
+  },
+
   render() {
+    var self = this;
     return (
       <div style={boardStyle}>
         {allLocations().map(function (row) {
           return (
             <div style={rowStyle}>
               {row.map(function (loc) {
-                return <ChessSquare
-                    color={getBackground(loc)}
-                    piece="P"
-                    background={getBackground(loc)} />;
+                if (self.state && self.state.map && self.state.map[loc]) {
+                  return <ChessSquare
+                      color={self.state.map[loc][0]}
+                      piece={self.state.map[loc][1]}
+                      background={getBackground(loc)} />;
+                } else {
+                  return <ChessSquare background={getBackground(loc)} />;
+                }
               })}
             </div>
           )
