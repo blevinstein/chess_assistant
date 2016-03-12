@@ -122,7 +122,6 @@ class ChessServlet extends Actor with HttpService {
       } ~
       // Search in these directories
       getFromDirectory("src/html/v2") ~
-      getFromDirectory("src/html/v1") ~ // Fallback to v1
       getFromDirectory("src/html/bower_components")
 }
 
