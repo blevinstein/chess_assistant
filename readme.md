@@ -26,14 +26,14 @@ TODO
   - Position#inCheck(color: Color = toMove)
   - CantMoveIntoCheck(threats: List[Location]) extends InvalidReason
   - Cant move through check while castling
-- Reimplement server in React.
 - Research algorithms for coloring the board
 - def Move.chessNotation: String, generate compact but unambiguous notation
 
 OLD Readme
 ==========
 
-OLD implementation in Racket. NEW implementation in Scala.
+OLD implementation in Racket, with a client written in Polymer.
+NEW implementation in Scala, with a client written in React.
 
 Install dependencies (requires bower):
 
