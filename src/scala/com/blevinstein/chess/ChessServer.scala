@@ -86,6 +86,7 @@ class ChessServlet extends Actor with HttpService {
   def receive = runRoute(chessService)
 
   val chessService =
+      // entrypoint
       pathEndOrSingleSlash {
         respondWithHeaders(`Cache-Control`(`no-cache`, `no-store`, `must-revalidate`)) {
           get {
@@ -93,6 +94,11 @@ class ChessServlet extends Actor with HttpService {
           }
         }
       } ~
+      /**
+       * GET new-board
+       * response : Position
+       * Returns the initial state of a board.
+       */
       path("new-board") {
         get {
           complete {
@@ -100,6 +106,11 @@ class ChessServlet extends Actor with HttpService {
           }
         }
       } ~
+      /**
+       * POST get-all-moves (request : Position)
+       * response : List[Move]
+       * Get all moves originating at [source].
+       */
       path("get-all-moves") {
         post {
           extract(_.request.entity.asString.parseJson.convertTo[Position]) {
@@ -109,18 +120,28 @@ class ChessServlet extends Actor with HttpService {
           }
         }
       } ~
+      /**
+       * POST get-moves (request : { position : Position, source : Location })
+       * response : List[Move]
+       * Get all moves originating at [source].
+       */
       path("get-moves") {
         post {
           extract(_.request.entity.asString.parseJson.asJsObject) { jsObj => {
             val position = jsObj.fields("position").convertTo[Position]
-            val location = jsObj.fields("source").convertTo[Location]
+            val source = jsObj.fields("source").convertTo[Location]
             complete {
-              position.getMovesFrom(List(location)).toJson.toString
+              position.getMovesFrom(List(source)).toJson.toString
             }
           }}
         }
       } ~
-      // Search in these directories
+      /**
+       * POST make-move (request : { position : Position, move : Move })
+       * response : Position
+       * Return the state of the board after making [move].
+       */
+      // Search in these directories for resources
       getFromDirectory("src/html/v2") ~
       getFromDirectory("src/html/bower_components")
 }
