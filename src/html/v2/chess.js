@@ -93,7 +93,11 @@ window.ChessBoard = React.createClass({
     var self = this;
     return function (event) {
       var request = {
-        "position": self.state,
+        "position": {
+          "map": self.state ? self.state.map : null,
+          "toMove": self.state ? self.state.toMove : null,
+          "history": self.state ? self.state.history : null
+        },
         "source": loc
       };
       $.post("/get-moves", JSON.stringify(request), function (data, success) {
