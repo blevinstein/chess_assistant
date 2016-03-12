@@ -85,18 +85,20 @@ window.ChessBoard = React.createClass({
   componentDidMount() {
     var self = this;
     $.get("/new-board", function(data) {
-      self.setState(JSON.parse(data));
+      self.setState(data);
     });
   },
 
   handleClick(loc) {
     var self = this;
     return function (event) {
+      if (!self.state) return;
+
       var request = {
         "position": {
-          "map": self.state ? self.state.map : null,
-          "toMove": self.state ? self.state.toMove : null,
-          "history": self.state ? self.state.history : null
+          "map": self.state.map,
+          "toMove": self.state.toMove,
+          "history": self.state.history
         },
         "source": loc
       };
