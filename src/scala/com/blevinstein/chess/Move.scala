@@ -261,6 +261,8 @@ case class CustomMove(
     dest: Location,
     canCapture: Boolean = true,
     mustCapture: Boolean = false) extends Move {
+  require(source.isValid)
+  require(dest.isValid)
   def apply(position: Position): Either[InvalidReason, Position] =
       Move.tryMove(
           position,
@@ -273,6 +275,9 @@ case class CustomMove(
 case class EnPassant(source: Location, dest: Location) extends Move {
   require((source.rank == 3 && dest.rank == 2) ||
       (source.rank == 4 && dest.rank == 5))
+  require(source.isValid)
+  require(dest.isValid)
+
   require(source.file + 1 == dest.file || source.file - 1 == dest.file)
 
   val targetLastPos =
