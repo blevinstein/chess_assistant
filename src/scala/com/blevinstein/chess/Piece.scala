@@ -18,26 +18,29 @@ object Pawn extends Piece {
   def getMoves(position: Position, location: Location): List[Move] = {
     val pieceColor = position(location).get._1
 
-    val forward = if (pieceColor == White) (0, 1) else (0, -1)
-    val left = (-1, 0)
-    val right = (1, 0)
+    val forwardDir = if (pieceColor == White) (0, 1) else (0, -1)
 
-    (List(CustomMove(location, location + forward, canCapture = false),
-        CustomMove(location, location + forward + left, mustCapture = true),
-        CustomMove(location, location + forward + right, mustCapture = true))
-        ++
-        (if (Move.firstMove(position, location))
-            List(CustomMove(location,
-                location + forward + forward,
-                canCapture = false))
-        else List.empty)
-        ++
-        (if ((pieceColor == White && location.rank == 4) ||
+    val forward = location + forwardDir
+    val doubleForward = location + forwardDir + forwardDir
+    val left = location + forwardDir + (-1, 0)
+    val right = location + forwardDir + (1, 0)
+
+    val enPassantPossible = ((pieceColor == White && location.rank == 4) ||
             (pieceColor == Black && location.rank == 3))
-            List(EnPassant(location, location + forward + left),
-                EnPassant(location, location + forward + right))
-        else List.empty)
-    )
+
+    List(
+        Some(CustomMove(location, forward, canCapture = false)),
+        if (left.isValid) Some(CustomMove(location, left, mustCapture = true))
+        else None,
+        if (left.isValid && enPassantPossible) Some(EnPassant(location, left))
+        else None,
+        if (right.isValid) Some(CustomMove(location, right, mustCapture = true))
+        else None,
+        if (right.isValid && enPassantPossible) Some(EnPassant(location, right))
+        else None,
+        if (Move.firstMove(position, location))
+            Some(CustomMove(location, doubleForward, canCapture = false))
+        else None).flatten[Move]
   }
 }
 
