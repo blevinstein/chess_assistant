@@ -58,7 +58,7 @@ function allLocations() {
       var f = String.fromCharCode(97 + file);
       return f + r;
     });
-  }).reverse();
+  });
 }
 
 function fileOf(loc) { return loc.charCodeAt(0) - 97; }
@@ -132,7 +132,7 @@ window.ChessBoard = React.createClass({
   },
 
   getTranslation(loc) {
-    return "translate(" + fileOf(loc) * 100 + "," + rankOf(loc) * 100 + ")";
+    return "translate(" + fileOf(loc) * 100 + "," + (7 - rankOf(loc)) * 100 + ")";
   },
 
   render() {
