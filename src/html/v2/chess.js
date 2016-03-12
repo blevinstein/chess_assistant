@@ -4,6 +4,11 @@ var boardStyle = {
   "width": 800
 };
 
+var selectedStyle = {
+  "opacity": 0.5,
+  "fill": "yellow"
+};
+
 var textStyle = {
   "alignmentBaseline": "central",
   "fontFamily": "sans-serif",
@@ -60,10 +65,6 @@ function fileOf(loc) { return loc.charCodeAt(0) - 97; }
 
 function rankOf(loc) { return loc.charCodeAt(1) - 49; }
 
-function getBackground(loc) {
-  return (fileOf(loc) + rankOf(loc)) % 2 ? "white" : "black";
-}
-
 window.ChessSquare = React.createClass({
   handleClick(event) {
     this.props.onClick(event);
@@ -82,6 +83,12 @@ window.ChessSquare = React.createClass({
 });
 
 window.ChessBoard = React.createClass({
+  getInitialState() { return {}; },
+
+  getBackground(loc) {
+    return (fileOf(loc) + rankOf(loc)) % 2 ? "white" : "black";
+  },
+
   componentDidMount() {
     var self = this;
     $.get("/new-board", function(data) {
@@ -92,20 +99,40 @@ window.ChessBoard = React.createClass({
   handleClick(loc) {
     var self = this;
     return function (event) {
-      if (!self.state) return;
-
-      var request = {
-        "position": {
-          "map": self.state.map,
-          "toMove": self.state.toMove,
-          "history": self.state.history
-        },
-        "source": loc
-      };
-      $.post("/get-moves", JSON.stringify(request), function (data, success) {
-        console.log(data);
-      });
+      if (!self.state.selected) {
+        var request = {
+          "position": {
+            "map": self.state.map,
+            "toMove": self.state.toMove,
+            "history": self.state.history
+          },
+          "source": loc
+        };
+        self.setState({"selected": loc});
+        $.post("/get-moves", JSON.stringify(request), function (data, success) {
+          console.log(data);
+        });
+      } else {
+        var request = {
+          "position": {
+            "map": self.state.map,
+            "toMove": self.state.toMove,
+            "history": self.state.history
+          },
+          "source": self.state.selected,
+          "dest": loc
+          /* TODO: promote */
+        };
+        self.setState({"selected": null});
+        $.post("/make-move", JSON.stringify(request), function (data, success) {
+          self.setState(data);
+        });
+      }
     };
+  },
+
+  getTranslation(loc) {
+    return "translate(" + fileOf(loc) * 100 + "," + rankOf(loc) * 100 + ")";
   },
 
   render() {
@@ -116,12 +143,12 @@ window.ChessBoard = React.createClass({
           return (
             <g key={"rank" + i}>
               {row.map(function (loc) {
-                if (self.state && self.state.map && self.state.map[loc]) {
+                if (self.state.map && self.state.map[loc]) {
                   return (
-                    <g transform={"translate(" + fileOf(loc) * 100 + "," + rankOf(loc) * 100 + ")"}
+                    <g transform={self.getTranslation(loc)}
                         key={loc}>
                       <ChessSquare
-                          background={getBackground(loc)}
+                          background={self.getBackground(loc)}
                           color={self.state.map[loc][0]}
                           piece={self.state.map[loc][1]}
                           onClick={self.handleClick(loc)} />
@@ -129,10 +156,10 @@ window.ChessBoard = React.createClass({
                   );
                 } else {
                   return (
-                    <g transform={"translate(" + fileOf(loc) * 100 + "," + rankOf(loc) * 100 + ")"}
+                    <g transform={self.getTranslation(loc)}
                         key={loc}>
                       <ChessSquare
-                          background={getBackground(loc)}
+                          background={self.getBackground(loc)}
                           key={loc}
                           onClick={self.handleClick(loc)}
                           x={fileOf(loc) * 100}
@@ -144,6 +171,12 @@ window.ChessBoard = React.createClass({
             </g>
           )
         })}
+      {self.state.selected
+          ? <g transform={self.getTranslation(self.state.selected)}>
+            <rect width="100" height="100" style={selectedStyle} />
+          </g>
+          : <g></g>
+      }}
       </svg>
     );
   }
