@@ -48,7 +48,6 @@ case class Position(
     map: Map[Location, Option[(Color, Piece)]],
     toMove: Color,
     history: List[Position]) {
-  import com.blevinstein.chess.Move.getDest
   import com.blevinstein.chess.TerminalHelper._
 
   // delegate to [map]
@@ -87,7 +86,7 @@ case class Position(
         false
       } else {
         getMovesFrom(List(src)).
-            filter{getDest(_) == dest}.
+            filter{_.dest == dest}.
             filter(move => move(this) match {
               case Right(_) => true // legal moves
               case Left(MustCapture) => true // pawns attacking empty space
@@ -109,7 +108,7 @@ case class Position(
         false
       } else {
         getMovesFrom(List(src)).
-            filter{getDest(_) == dest}.
+            filter{_.dest == dest}.
             filter(move => move(this) match {
               case Left(SameColor) => true // defending other pieces
               case Right(_) => true // legal moves to empty space

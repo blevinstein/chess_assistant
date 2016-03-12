@@ -9,6 +9,8 @@ import com.blevinstein.chess.Location.{strToRank,strToFile}
 //    conditions. (Any other exceptions?)
 
 trait Move {
+  def dest: Location
+  def source: Location
   // Returns the new state of the board after making [this] move.
   // Should return None if [this] is not a valid move.
   def apply(position: Position): Either[InvalidReason, Position]
@@ -34,24 +36,6 @@ case class HasMoved(location: Location) extends InvalidReason
 case class InvalidArg[T](arg: T) extends InvalidReason
 
 object Move {
-  def getSource(move: Move): Location = move match {
-        case CustomMove(source, _, _, _) => source
-        case LeaperMove(source, _) => source
-        case RiderMove(source, _, _) => source
-        case PromotePawn(baseMove, _, _) => getSource(baseMove)
-        case EnPassant(source, _) => source
-        case castle: Castle => castle.kingPos
-  }
-  def getDest(move: Move): Location =
-      move match {
-        case CustomMove(_, dest, _, _) => dest
-        case LeaperMove(source, offset) => source + offset
-        case RiderMove(source, offset, dist) => source + mul(offset, dist)
-        case PromotePawn(baseMove, _, _) => getDest(baseMove)
-        case EnPassant(source, dest) => dest
-        case castle: Castle => castle.newKingPos
-      }
-
   def createSourcePredicate(str: String): Location => Boolean =
       str.split("") match {
         case Array(rankStr) if strToRank.contains(rankStr) =>
@@ -325,6 +309,8 @@ case class LeaperMove(source: Location, offset: (Int, Int)) extends Move {
   require(offset != (0, 0))
   require((source + offset).isValid)
 
+  def dest: Location = source + offset
+
   def apply(position: Position): Either[InvalidReason, Position] =
       Move.tryMove(position, source, source + offset)
 }
@@ -346,6 +332,8 @@ case class RiderMove(source: Location, offset: (Int, Int), dist: Int) extends
   require(offset != (0, 0))
   require(dist > 0)
   require((source + Move.mul(offset, dist)).isValid)
+
+  def dest: Location = source + Move.mul(offset, dist)
 
   def apply(position: Position): Either[InvalidReason, Position] = {
     val betweenPieces =
@@ -381,6 +369,10 @@ case class Castle(color: Color, kingside: Boolean) extends Move {
   val newRookPos = Location(newRookFile, rank)
   val newKingPos = Location(newKingFile, rank)
 
+  val source: Location = kingPos
+
+  val dest: Location = newKingPos
+
   def apply(position: Position): Either[InvalidReason, Position] = {
     val betweenPieces = Move.between(kingFile, rookFile).
         flatMap(i => position(Location(i, rank))).
@@ -404,6 +396,10 @@ case class Castle(color: Color, kingside: Boolean) extends Move {
 case class PromotePawn(baseMove: Move, location: Location, newPiece: Piece)
     extends Move {
   require(List(Bishop, Knight, Rook, Queen).contains(newPiece))
+
+  val source: Location = baseMove.source
+
+  val dest: Location = baseMove.dest
 
   def apply(position: Position): Either[InvalidReason, Position] =
       baseMove(position) match {
