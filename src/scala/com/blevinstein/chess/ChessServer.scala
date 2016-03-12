@@ -77,7 +77,8 @@ object ChessJsonProtocol extends DefaultJsonProtocol {
     def write(position: Position): JsValue = JsObject(
         "map" -> position.map.toJson,
         "toMove" -> position.toMove.toJson,
-        "history" -> position.history.toJson)
+        "history" ->
+            position.history.map{p => Position(p.map, p.toMove, List())}.toJson)
   }
 
   implicit object MoveFormat extends RootJsonFormat[Move] {
