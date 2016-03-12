@@ -70,9 +70,13 @@ function getBackground(loc) {
 }
 
 window.ChessSquare = React.createClass({
+  handleClick(event) {
+    this.props.onClick(event);
+  },
+
   render() {
     return (
-      <svg width="100" height="100">
+      <svg width="100" height="100" onClick={this.handleClick}>
         <rect width="100" height="100" fill={getCssColor(this.props.background)}></rect>
         <text style={textStyle} x="50" y="50" fontSize="50">
           {this.props.piece ? getCharacter(this.props.color, this.props.piece) : ""}
@@ -90,6 +94,19 @@ window.ChessBoard = React.createClass({
     });
   },
 
+  handleClick(loc) {
+    var self = this;
+    return function (event) {
+      var request = {
+        "position": self.state,
+        "source": loc
+      };
+      $.post("/get-moves", JSON.stringify(request), function (data, success) {
+        console.log(data);
+      });
+    };
+  },
+
   render() {
     var self = this;
     return (
@@ -103,11 +120,13 @@ window.ChessBoard = React.createClass({
                       background={getBackground(loc)}
                       color={self.state.map[loc][0]}
                       key={loc}
-                      piece={self.state.map[loc][1]} />;
+                      piece={self.state.map[loc][1]}
+                      onClick={self.handleClick(loc)}/>;
                 } else {
                   return <ChessSquare
                       background={getBackground(loc)}
-                      key={loc} />;
+                      key={loc}
+                      onClick={self.handleClick(loc)}/>;
                 }
               })}
             </div>

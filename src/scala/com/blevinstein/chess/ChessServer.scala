@@ -14,12 +14,14 @@ import spray.http.CacheDirectives._
 import spray.http.HttpHeaders._
 import spray.http.HttpMethods._
 import spray.http.Uri
-import spray.httpx.SprayJsonSupport
+import spray.httpx.SprayJsonSupport._
 import spray.json._
+import spray.routing.Directive1
 import spray.routing.HttpService
 import spray.util.LoggingContext
 
 object ChessJsonProtocol extends DefaultJsonProtocol {
+
   implicit object ColorFormat extends RootJsonFormat[Color] {
     def read(json: JsValue): Color = json match {
       case JsString("black") => Black
@@ -48,15 +50,36 @@ object ChessJsonProtocol extends DefaultJsonProtocol {
     def write(piece: Piece): JsValue = JsString(piece.letter)
   }
 
+  implicit object MoveFormat extends RootJsonFormat[Move] {
+    def read(json: JsValue): Move = ???
+    def write(move: Move): JsValue = JsObject(
+        "source" -> Move.getSource(move).toJson,
+        "dest" -> Move.getDest(move).toJson)
+  }
+
+  implicit object PositionFormat extends RootJsonFormat[Position] {
+    def read(json: JsValue): Position = json match {
+      case JsObject(props) =>
+        Position(
+            props("map").convertTo[Map[Location, Option[(Color, Piece)]]].
+                withDefaultValue(None),
+            props("toMove").convertTo[Color],
+            props("history").convertTo[List[Position]])
+      case _ => ???
+    }
+    def write(position: Position): JsValue = JsObject(
+        "map" -> position.map.toJson,
+        "toMove" -> position.toMove.toJson,
+        "history" -> position.history.toJson)
+  }
+
   implicit val colorPieceFormat: JsonFormat[(Color, Piece)] =
       tuple2Format[Color, Piece]
-  implicit val positionFormat: JsonFormat[Position] =
-      jsonFormat3(Position.apply) // map, toMove, history
 }
 
+import ChessJsonProtocol._
+
 class ChessServlet extends Actor with HttpService {
-  import SprayJsonSupport._
-  import ChessJsonProtocol._
 
   def actorRefFactory = context
 
@@ -77,6 +100,27 @@ class ChessServlet extends Actor with HttpService {
           }
         }
       } ~
+      path("get-all-moves") {
+        post {
+          extract(_.request.entity.asString.parseJson.convertTo[Position]) {
+            position => complete {
+              position.getAllMoves.toJson.toString
+            }
+          }
+        }
+      } ~
+      path("get-moves") {
+        post {
+          extract(_.request.entity.asString.parseJson.asJsObject) { jsObj => {
+            val position = jsObj.fields("position").convertTo[Position]
+            val location = jsObj.fields("source").convertTo[Location]
+            complete {
+              position.getMovesFrom(List(location)).toJson.toString
+            }
+          }}
+        }
+      } ~
+      // Search in these directories
       getFromDirectory("src/html/v2") ~
       getFromDirectory("src/html/v1") ~ // Fallback to v1
       getFromDirectory("src/html/bower_components")
