@@ -11,11 +11,6 @@ var textStyle = {
   "textAnchor": "middle"
 };
 
-var rowStyle = {
-  "display": "flex",
-  "flexDirection": "row",
-};
-
 function getCharacter(color, piece) {
   if      (color == 'white' && piece == 'K') return "\u2654";
   else if (color == 'white' && piece == 'Q') return "\u2655";
@@ -76,12 +71,12 @@ window.ChessSquare = React.createClass({
 
   render() {
     return (
-      <svg width="100" height="100" onClick={this.handleClick}>
+      <g onClick={this.handleClick}>
         <rect width="100" height="100" fill={getCssColor(this.props.background)}></rect>
         <text style={textStyle} x="50" y="50" fontSize="50">
           {this.props.piece ? getCharacter(this.props.color, this.props.piece) : ""}
         </text>
-      </svg>
+      </g>
     );
   }
 });
@@ -110,29 +105,40 @@ window.ChessBoard = React.createClass({
   render() {
     var self = this;
     return (
-      <div style={boardStyle}>
-        {allLocations().map(function (row) {
+      <svg style={boardStyle}>
+        {allLocations().map(function (row, i) {
           return (
-            <div style={rowStyle} key={"row" + row}>
+            <g key={"rank" + i}>
               {row.map(function (loc) {
                 if (self.state && self.state.map && self.state.map[loc]) {
-                  return <ChessSquare
-                      background={getBackground(loc)}
-                      color={self.state.map[loc][0]}
-                      key={loc}
-                      piece={self.state.map[loc][1]}
-                      onClick={self.handleClick(loc)}/>;
+                  return (
+                    <g transform={"translate(" + fileOf(loc) * 100 + "," + rankOf(loc) * 100 + ")"}
+                        key={loc}>
+                      <ChessSquare
+                          background={getBackground(loc)}
+                          color={self.state.map[loc][0]}
+                          piece={self.state.map[loc][1]}
+                          onClick={self.handleClick(loc)} />
+                    </g>
+                  );
                 } else {
-                  return <ChessSquare
-                      background={getBackground(loc)}
-                      key={loc}
-                      onClick={self.handleClick(loc)}/>;
+                  return (
+                    <g transform={"translate(" + fileOf(loc) * 100 + "," + rankOf(loc) * 100 + ")"}
+                        key={loc}>
+                      <ChessSquare
+                          background={getBackground(loc)}
+                          key={loc}
+                          onClick={self.handleClick(loc)}
+                          x={fileOf(loc) * 100}
+                          y={rankOf(loc) * 100}/>
+                    </g>
+                  );
                 }
               })}
-            </div>
+            </g>
           )
         })}
-      </div>
+      </svg>
     );
   }
 });
