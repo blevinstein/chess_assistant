@@ -5,8 +5,9 @@ var boardStyle = {
 };
 
 var selectedStyle = {
+  "fill": "yellow",
   "opacity": 0.5,
-  "fill": "yellow"
+  "pointerEvents": "none"
 };
 
 var textStyle = {
@@ -65,6 +66,8 @@ function fileOf(loc) { return loc.charCodeAt(0) - 97; }
 
 function rankOf(loc) { return loc.charCodeAt(1) - 49; }
 
+function getPos(loc) { return [fileOf(loc) * 100, (7 - rankOf(loc)) * 100]; }
+
 window.ChessSquare = React.createClass({
   handleClick(event) {
     this.props.onClick(event);
@@ -100,6 +103,7 @@ window.ChessBoard = React.createClass({
     var self = this;
     return function (event) {
       if (!self.state.selected) {
+        // First click: select a source square
         var request = {
           "position": {
             "map": self.state.map,
@@ -110,9 +114,10 @@ window.ChessBoard = React.createClass({
         };
         self.setState({"selected": loc});
         $.post("/get-moves", JSON.stringify(request), function (data, success) {
-          console.log(data);
+          self.setState({"selectedMoves": data});
         });
       } else {
+        // Second click: select a dest square
         var request = {
           "position": {
             "map": self.state.map,
@@ -123,16 +128,19 @@ window.ChessBoard = React.createClass({
           "dest": loc
           /* TODO: promote */
         };
-        self.setState({"selected": null});
-        $.post("/make-move", JSON.stringify(request), function (data, success) {
-          self.setState(data);
-        });
+        self.setState({"selected": null, "selectedMoves": null});
+        if (self.state.selectedMoves.map(move => move.dest).indexOf(loc) != -1) {
+          $.post("/make-move", JSON.stringify(request), function (data, success) {
+            self.setState(data);
+          });
+        }
       }
     };
   },
 
   getTranslation(loc) {
-    return "translate(" + fileOf(loc) * 100 + "," + (7 - rankOf(loc)) * 100 + ")";
+    var pos = getPos(loc)
+    return "translate(" + pos[0] + "," + pos[1] + ")";
   },
 
   render() {
@@ -162,8 +170,8 @@ window.ChessBoard = React.createClass({
                           background={self.getBackground(loc)}
                           key={loc}
                           onClick={self.handleClick(loc)}
-                          x={fileOf(loc) * 100}
-                          y={rankOf(loc) * 100}/>
+                          x={getPos(loc)[0]}
+                          y={getPos(loc)[1]}/>
                     </g>
                   );
                 }
@@ -171,12 +179,24 @@ window.ChessBoard = React.createClass({
             </g>
           )
         })}
-      {self.state.selected
-          ? <g transform={self.getTranslation(self.state.selected)}>
-            <rect width="100" height="100" style={selectedStyle} />
-          </g>
-          : <g></g>
-      }}
+        {self.state.selected
+            ? <g transform={self.getTranslation(self.state.selected)}>
+              <rect width="100" height="100" style={selectedStyle} />
+            </g>
+            : <g></g>
+        }
+        {self.state.selectedMoves
+            ? self.state.selectedMoves.map(move => (
+              <line key={move.source + "-" + move.dest}
+                  x1={getPos(move.source)[0] + 50}
+                  y1={getPos(move.source)[1] + 50}
+                  x2={getPos(move.dest)[0] + 50}
+                  y2={getPos(move.dest)[1] + 50}
+                  stroke="green" strokeWidth="5" strokeLinecap="round">
+              </line>
+            ))
+            : <g></g>
+        }
       </svg>
     );
   }
