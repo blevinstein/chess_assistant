@@ -1,7 +1,7 @@
 var boardStyle = {
   "border": "5px solid black",
-  "height": 800,
-  "width": 800
+  "height": 850,
+  "width": 850
 };
 
 var messageStyle = {
@@ -57,14 +57,14 @@ function getCssColor(color) {
 }
 
 function allLocations() {
-  return (0).upto(8).map(function(rank) {
-    var r = String.fromCharCode(49 + rank);
-    return (0).upto(8).map(function(file) {
-      var f = String.fromCharCode(97 + file);
-      return f + r;
-    });
-  });
+  return (0).upto(8).map(rank =>
+      (0).upto(8).map(file =>
+          fileStr(file) + rankStr(rank)));
 }
+
+function fileStr(fileNum) { return String.fromCharCode(97 + fileNum); }
+
+function rankStr(rankNum) { return String.fromCharCode(49 + rankNum); }
 
 function fileOf(loc) { return loc.charCodeAt(0) - 97; }
 
@@ -161,44 +161,52 @@ window.ChessBoard = React.createClass({
           {self.state.errorMessage ? self.state.errorMessage : ""}
         </div>
         <svg style={boardStyle}>
-          {allLocations().map(function (row, i) {
-            return (
-              <g key={"rank" + i}>
-                {row.map(function (loc) {
-                  if (self.state.map && self.state.map[loc]) {
-                    return (
-                      <g transform={self.getTranslation(loc)}
-                          key={loc}>
-                        <ChessSquare
-                            background={self.getBackground(loc)}
-                            color={self.state.map[loc][0]}
-                            piece={self.state.map[loc][1]}
-                            onClick={self.handleClick(loc)} />
-                      </g>
-                    );
-                  } else {
-                    return (
-                      <g transform={self.getTranslation(loc)}
-                          key={loc}>
-                        <ChessSquare
-                            background={self.getBackground(loc)}
-                            key={loc}
-                            onClick={self.handleClick(loc)}
-                            x={getPos(loc)[0]}
-                            y={getPos(loc)[1]}/>
-                      </g>
-                    );
-                  }
-                })}
-              </g>
-            )
-          })}
+          {(0).upto(8).map((file, i) =>
+              <text x={file * 100 + 100} y="25" style={textStyle} key={"fileLabel" + i}>
+                {fileStr(file)}
+              </text>)}
+          {(0).upto(8).map((rank, i) =>
+              <text x="25" y={700 - rank * 100 + 100} style={textStyle} key={"rankLabel" + i}>
+                {rankStr(rank)}
+              </text>)}
+          <g transform="translate(50, 50)">
+            {allLocations().map(function (row, i) {
+              return (
+                <g key={"rank" + i}>
+                  {row.map(function (loc) {
+                    if (self.state.map && self.state.map[loc]) {
+                      return (
+                        <g transform={self.getTranslation(loc)}
+                            key={loc}>
+                          <ChessSquare
+                              background={self.getBackground(loc)}
+                              color={self.state.map[loc][0]}
+                              piece={self.state.map[loc][1]}
+                              onClick={self.handleClick(loc)} />
+                        </g>
+                      );
+                    } else {
+                      return (
+                        <g transform={self.getTranslation(loc)}
+                            key={loc}>
+                          <ChessSquare
+                              background={self.getBackground(loc)}
+                              key={loc}
+                              onClick={self.handleClick(loc)}
+                              x={getPos(loc)[0]}
+                              y={getPos(loc)[1]}/>
+                        </g>
+                      );
+                    }
+                  })}
+                </g>
+              )
+            })}
           {self.state.selected
               ? <g transform={self.getTranslation(self.state.selected)}>
                 <rect width="100" height="100" style={selectedStyle} />
               </g>
-              : <g></g>
-          }
+              : <g></g>}
           {self.state.selectedMoves
               ? self.state.selectedMoves.map((move, i) => (
                 <line key={"move" + i}
@@ -209,8 +217,8 @@ window.ChessBoard = React.createClass({
                     stroke="green" strokeWidth="5" strokeLinecap="round">
                 </line>
               ))
-              : <g></g>
-          }
+              : <g></g>}
+          </g>
         </svg>
       </div>
     );
