@@ -4,6 +4,10 @@ var boardStyle = {
   "width": 800
 };
 
+var messageStyle = {
+  "color": "red"
+};
+
 var selectedStyle = {
   "fill": "yellow",
   "opacity": 0.5,
@@ -112,7 +116,7 @@ window.ChessBoard = React.createClass({
           },
           "source": loc
         };
-        self.setState({"selected": loc});
+        self.setState({"selected": loc, "errorMessage": null});
         $.post("/get-moves", JSON.stringify(request), function (data, success) {
           self.setState({"selectedMoves": data});
         });
@@ -130,8 +134,14 @@ window.ChessBoard = React.createClass({
         };
         self.setState({"selected": null, "selectedMoves": null});
         if (self.state.selectedMoves.map(move => move.dest).indexOf(loc) != -1) {
-          $.post("/make-move", JSON.stringify(request), function (data, success) {
-            self.setState(data);
+          $.post("/is-legal", JSON.stringify(request), function (data) {
+            if (data.success) {
+              $.post("/make-move", JSON.stringify(request), function (data) {
+                self.setState(data);
+              });
+            } else {
+              self.setState({"errorMessage": data.reason});
+            }
           });
         }
       }
@@ -146,58 +156,63 @@ window.ChessBoard = React.createClass({
   render() {
     var self = this;
     return (
-      <svg style={boardStyle}>
-        {allLocations().map(function (row, i) {
-          return (
-            <g key={"rank" + i}>
-              {row.map(function (loc) {
-                if (self.state.map && self.state.map[loc]) {
-                  return (
-                    <g transform={self.getTranslation(loc)}
-                        key={loc}>
-                      <ChessSquare
-                          background={self.getBackground(loc)}
-                          color={self.state.map[loc][0]}
-                          piece={self.state.map[loc][1]}
-                          onClick={self.handleClick(loc)} />
-                    </g>
-                  );
-                } else {
-                  return (
-                    <g transform={self.getTranslation(loc)}
-                        key={loc}>
-                      <ChessSquare
-                          background={self.getBackground(loc)}
-                          key={loc}
-                          onClick={self.handleClick(loc)}
-                          x={getPos(loc)[0]}
-                          y={getPos(loc)[1]}/>
-                    </g>
-                  );
-                }
-              })}
-            </g>
-          )
-        })}
-        {self.state.selected
-            ? <g transform={self.getTranslation(self.state.selected)}>
-              <rect width="100" height="100" style={selectedStyle} />
-            </g>
-            : <g></g>
-        }
-        {self.state.selectedMoves
-            ? self.state.selectedMoves.map(move => (
-              <line key={move.source + "-" + move.dest}
-                  x1={getPos(move.source)[0] + 50}
-                  y1={getPos(move.source)[1] + 50}
-                  x2={getPos(move.dest)[0] + 50}
-                  y2={getPos(move.dest)[1] + 50}
-                  stroke="green" strokeWidth="5" strokeLinecap="round">
-              </line>
-            ))
-            : <g></g>
-        }
-      </svg>
+      <div>
+        <div style={messageStyle}>
+          {self.state.errorMessage ? self.state.errorMessage : ""}
+        </div>
+        <svg style={boardStyle}>
+          {allLocations().map(function (row, i) {
+            return (
+              <g key={"rank" + i}>
+                {row.map(function (loc) {
+                  if (self.state.map && self.state.map[loc]) {
+                    return (
+                      <g transform={self.getTranslation(loc)}
+                          key={loc}>
+                        <ChessSquare
+                            background={self.getBackground(loc)}
+                            color={self.state.map[loc][0]}
+                            piece={self.state.map[loc][1]}
+                            onClick={self.handleClick(loc)} />
+                      </g>
+                    );
+                  } else {
+                    return (
+                      <g transform={self.getTranslation(loc)}
+                          key={loc}>
+                        <ChessSquare
+                            background={self.getBackground(loc)}
+                            key={loc}
+                            onClick={self.handleClick(loc)}
+                            x={getPos(loc)[0]}
+                            y={getPos(loc)[1]}/>
+                      </g>
+                    );
+                  }
+                })}
+              </g>
+            )
+          })}
+          {self.state.selected
+              ? <g transform={self.getTranslation(self.state.selected)}>
+                <rect width="100" height="100" style={selectedStyle} />
+              </g>
+              : <g></g>
+          }
+          {self.state.selectedMoves
+              ? self.state.selectedMoves.map((move, i) => (
+                <line key={"move" + i}
+                    x1={getPos(move.source)[0] + 50}
+                    y1={getPos(move.source)[1] + 50}
+                    x2={getPos(move.dest)[0] + 50}
+                    y2={getPos(move.dest)[1] + 50}
+                    stroke="green" strokeWidth="5" strokeLinecap="round">
+                </line>
+              ))
+              : <g></g>
+          }
+        </svg>
+      </div>
     );
   }
 });

@@ -25,6 +25,7 @@ object CantCapture extends InvalidReason
 object MustCapture extends InvalidReason
 object SameColor extends InvalidReason
 object NoPieceAtSource extends InvalidReason
+object WrongColorToMove extends InvalidReason
 case class WrongPiece(expected: List[Piece], actual: Piece)
     extends InvalidReason
 // TODO: Think about redesigning OccludedBy to support generalized attack
@@ -36,6 +37,16 @@ case class HasMoved(location: Location) extends InvalidReason
 case class InvalidArg[T](arg: T) extends InvalidReason
 
 object Move {
+  // TODO: Add king-in-check verification
+  def verify(before: Position, source: Location, after: Position):
+      Either[InvalidReason, Position] = {
+    if (before(source).get._1 != before.toMove) {
+      Left(WrongColorToMove)
+    } else {
+      Right(after)
+    }
+  }
+
   def createSourcePredicate(str: String): Location => Boolean =
       str.split("") match {
         case Array(rankStr) if strToRank.contains(rankStr) =>
@@ -139,6 +150,17 @@ object Move {
     case _ => throw new RuntimeException(s"Unhandled move string: $input")
   }
 
+  def find(position: Position, source: Location, dest: Location): Move = {
+    val moves = position.getAllMoves.
+        filter(move => move.source == source && move.dest == dest)
+    if (moves.length == 1) {
+      moves(0)
+    } else {
+      // Prefer legal moves, but allow returning illegal moves as well
+      moves.sortBy(move => if(move.isLegal(position)) 0 else 1).apply(0)
+    }
+  }
+
   // Infer a move, given a set of restrictions, such as [dest], [piece],
   // [sourcePredicate].
   def infer(
@@ -166,12 +188,8 @@ object Move {
                 })).
         // Filter to only include legal moves
         filter{_.isLegal(position)}.
-        // Filter to only include moves with the desired effect on [dest].
-        filter((move) => move(position) match {
-          case Left(_) => false
-          case Right(newPosition) =>
-              newPosition(dest) == Some(position.toMove, piece)
-        }).
+        // Filter to only include moves to [dest]
+        filter(move => move.dest == dest).
         // Apply promotion effects afterwards if necessary
         map(move => promote match {
           case None => move // TODO: Check for pawns needing to promote?
@@ -220,7 +238,7 @@ object Move {
                   Left(MustCapture)
               else
                   // Move to open space
-                  Right(position.update(Map(
+                  Move.verify(position, source, position.update(Map(
                       source -> None,
                       dest -> Some((sourceColor, piece)))))
 
@@ -231,7 +249,7 @@ object Move {
                 Left(CantCapture)
               else
                   // Capture
-                  Right(position.update(Map(
+                  Move.verify(position, source, position.update(Map(
                       source -> None,
                       dest -> Some((sourceColor, piece)))))
 
@@ -285,7 +303,7 @@ case class EnPassant(source: Location, dest: Location) extends Move {
           None,
           Some((colorB2, Pawn)))
           if colorA == !colorB1 && colorB1 == colorB2 =>
-              Right(position.update(Map(
+              Move.verify(position, source, position.update(Map(
                   source -> None,
                   dest -> Some(colorA, Pawn),
                   targetNowPos -> None)))
@@ -385,7 +403,7 @@ case class Castle(color: Color, kingside: Boolean) extends Move {
     else if (!Move.firstMove(position, kingPos))
         Left(HasMoved(kingPos))
     else
-      Right(position.update(Map(
+      Move.verify(position, kingPos, position.update(Map(
           rookPos -> None,
           newRookPos -> Some(color, Rook),
           kingPos -> None,

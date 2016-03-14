@@ -39,6 +39,7 @@ object ChessJsonProtocol extends DefaultJsonProtocol {
       case MustCapture => JsString("Must capture")
       case SameColor => JsString("Can't capture same color")
       case NoPieceAtSource => JsString("No piece at source")
+      case WrongColorToMove => JsString("Wrong color to move")
       case WrongPiece(expected, actual) =>
           JsString(s"Expected $expected but was $actual")
       case OccludedBy(pieces) => JsString(s"Path blocked by $pieces")
@@ -87,11 +88,7 @@ object ChessJsonProtocol extends DefaultJsonProtocol {
       val position = jsObj.fields("position").convertTo[Position]
       val source = jsObj.fields("source").convertTo[Location]
       val dest = jsObj.fields("dest").convertTo[Location]
-      val piece = position(source).get._2
-      val promote = if (jsObj.fields.contains("promote"))
-              Some(jsObj.fields("promote").convertTo[Piece])
-          else None
-      Move.infer(position, dest, piece, {_ == source}, promote, json.toString)
+      Move.find(position, source, dest)
     }
     def write(move: Move): JsValue = JsObject(
         "source" -> move.source.toJson,
@@ -121,7 +118,7 @@ class ChessServlet extends Actor with HttpService {
     } ~
     /**
       * GET new-board
-      * response : Position
+      * response: Position
       * Returns the initial state of a board.
       */
     path("new-board") {
@@ -132,8 +129,8 @@ class ChessServlet extends Actor with HttpService {
       }
     } ~
     /**
-      * POST get-all-moves (request : Position)
-      * response : List[Move]
+      * POST get-all-moves (request: Position)
+      * response: List[Move]
       * Get all moves originating at [source].
       */
     path("get-all-moves") {
@@ -146,8 +143,8 @@ class ChessServlet extends Actor with HttpService {
       }
     } ~
     /**
-      * POST get-moves (request : { position : Position, source : Location })
-      * response : List[Move]
+      * POST get-moves (request: { position: Position, source: Location })
+      * response: List[Move]
       * Get all moves originating at [source].
       */
     path("get-moves") {
@@ -162,12 +159,12 @@ class ChessServlet extends Actor with HttpService {
       }
     } ~
     /**
-      * POST make-move (request : {
-      *     position : Position,
-      *     source : Location,
-      *     dest : Location,
-      *     [promote : Piece] })
-      * response : Position
+      * POST make-move (request: {
+      *     position: Position,
+      *     source: Location,
+      *     dest: Location,
+      *     [promote: Piece] })
+      * response: Position
       * Return the state of the board after making [move].
       */
     path("make-move") {
@@ -179,6 +176,30 @@ class ChessServlet extends Actor with HttpService {
             move(position) match {
               case Left(reason) => JsObject(Map("error" -> reason.toJson))
               case Right(position) => position
+            }
+          }
+        }}
+      }
+    } ~
+    /**
+     * POST is-legal (request: {
+     *    position: Position,
+     *    source: Location,
+     *    dest: Location,
+     *    [promote: Piece] })
+     * response: {success: Boolean, [reason: InvalidReason]}
+     * Return whether a move is valid, including a reason if it is invalid.
+     */
+    path("is-legal") {
+      post {
+        extract(_.request.entity.asString.parseJson.asJsObject) { jsObj => {
+          val position = jsObj.fields("position").convertTo[Position]
+          val move = jsObj.convertTo[Move]
+          complete {
+            move(position) match {
+              case Right(_) => JsObject(Map("success" -> JsTrue))
+              case Left(reason) =>
+                  JsObject(Map("success" -> JsFalse, "reason" -> reason.toJson))
             }
           }
         }}

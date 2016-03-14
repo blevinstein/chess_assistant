@@ -49,13 +49,16 @@ class MoveTest extends FunSuite with Matchers {
   }
 
   test("RiderMove") {
-    val pos = RiderMove("b2", (1, 1), 3)(Position.initial).right.get
-    pos("b2") shouldEqual None
-    pos("e5") shouldEqual Some(White, Pawn)
+    val pos = Position.create(List("d4", "d5", "Bf4", "a5"))
+    pos("c1") shouldEqual None
+    pos("f4") shouldEqual Some(White, Bishop)
 
-    RiderMove("e5", (1, 1), 1).isLegal(pos) shouldEqual true
-    RiderMove("e5", (1, 1), 2).isLegal(pos) shouldEqual true
-    RiderMove("e5", (1, 1), 3).isLegal(pos) shouldEqual false
+    RiderMove("f4", (1, 1), 1).isLegal(pos) shouldEqual true
+    RiderMove("f4", (1, 1), 2).isLegal(pos) shouldEqual true
+    RiderMove("f4", (-1, 1), 1).isLegal(pos) shouldEqual true
+    RiderMove("f4", (-1, 1), 2).isLegal(pos) shouldEqual true
+    RiderMove("f4", (-1, 1), 3).isLegal(pos) shouldEqual true
+    RiderMove("f4", (-1, 1), 4).isLegal(pos) shouldEqual false
   }
 
   test("Castle") {

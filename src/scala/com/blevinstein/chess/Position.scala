@@ -90,6 +90,7 @@ case class Position(
             filter(move => move(this) match {
               case Right(_) => true // legal moves
               case Left(MustCapture) => true // pawns attacking empty space
+              case Left(WrongColorToMove) => true // irrelevant
               case Left(OccludedBy(_)) => false // path is blocked
               case Left(_) => false
             }).
@@ -113,6 +114,7 @@ case class Position(
               case Left(SameColor) => true // defending other pieces
               case Right(_) => true // legal moves to empty space
               case Left(MustCapture) => true // pawns attacking empty space
+              case Left(WrongColorToMove) => true // irrelevant
               case Left(OccludedBy(_)) => false // path is blocked
               case Left(_) => false
             }).

@@ -4,7 +4,7 @@ trait Piece {
   def letter: String
   def getMoves(position: Position, location: Location): List[Move]
 
-  override def toString: String = this.getClass.getSimpleName
+  override def toString: String = this.letter
 }
 object Piece {
   val byLetter: Map[String, Piece] =
@@ -73,5 +73,5 @@ object King extends Piece {
   def getMoves(position: Position, location: Location): List[Move] =
       LeaperMove.all(location, (1, 1)) ++
       LeaperMove.all(location, (0, 1)) ++
-      Castle.getAll.filter{_.isLegal(position)}
+      (if (Move.firstMove(position, location)) Castle.getAll else List.empty)
 }
