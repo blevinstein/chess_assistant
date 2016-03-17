@@ -89,6 +89,18 @@ window.ChessSquare = React.createClass({
   }
 });
 
+window.ShowMove = React.createClass({
+  render() {
+    return (
+      <line x1={getPos(this.props.source)[0] + 50}
+          y1={getPos(this.props.source)[1] + 50}
+          x2={getPos(this.props.dest)[0] + 50}
+          y2={getPos(this.props.dest)[1] + 50}
+          stroke={this.props.color} strokeWidth="5" strokeLinecap="round" />
+    );
+  }
+});
+
 window.ChessBoard = React.createClass({
   getInitialState() { return {}; },
 
@@ -209,13 +221,7 @@ window.ChessBoard = React.createClass({
               : <g></g>}
           {self.state.selectedMoves
               ? self.state.selectedMoves.map((move, i) => (
-                <line key={"move" + i}
-                    x1={getPos(move.source)[0] + 50}
-                    y1={getPos(move.source)[1] + 50}
-                    x2={getPos(move.dest)[0] + 50}
-                    y2={getPos(move.dest)[1] + 50}
-                    stroke="green" strokeWidth="5" strokeLinecap="round">
-                </line>
+                <ShowMove key={"move" + i} color="green" source={move.source} dest={move.dest} />
               ))
               : <g></g>}
           </g>
