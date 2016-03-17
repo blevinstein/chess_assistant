@@ -91,12 +91,18 @@ window.ChessSquare = React.createClass({
 
 window.ShowMove = React.createClass({
   render() {
+    var source = getPos(this.props.source);
+    var dest = getPos(this.props.dest);
+    var strokeLength = Math.sqrt(Math.pow(source[0] - dest[0], 2) + Math.pow(source[1] - dest[1], 2));
     return (
       <line x1={getPos(this.props.source)[0] + 50}
           y1={getPos(this.props.source)[1] + 50}
           x2={getPos(this.props.dest)[0] + 50}
           y2={getPos(this.props.dest)[1] + 50}
-          stroke={this.props.color} strokeWidth="5" strokeLinecap="round" />
+          stroke={this.props.color}
+          strokeLinecap="round"
+          strokeOpacity="0.5"
+          strokeWidth={1000 / Math.pow(strokeLength, 1)} />
     );
   }
 });
@@ -150,8 +156,6 @@ window.ChessBoard = React.createClass({
                 "isLegal": isLegal.success,
                 "invalidReason": isLegal.reason
               };
-              // DEBUG
-              console.log(augmentedMove);
               self.setState({"selectedMoves": self.state.selectedMoves.concat([augmentedMove])});
             });
           });
