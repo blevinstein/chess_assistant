@@ -110,8 +110,8 @@ window.ChessBoard = React.createClass({
 
   componentDidMount() {
     var self = this;
-    $.get("/new-board", function(data) {
-      self.setState(data);
+    $.get("/new-board", function(position) {
+      self.setState(position);
     });
   },
 
@@ -129,8 +129,32 @@ window.ChessBoard = React.createClass({
           "source": loc
         };
         self.setState({"selected": loc, "errorMessage": null});
-        $.post("/get-moves", JSON.stringify(request), function (data, success) {
-          self.setState({"selectedMoves": data});
+        $.post("/get-moves", JSON.stringify(request), function (moves) {
+          self.setState({"selectedMoves": []});
+          // Augment each move with additional information, and add to state
+          moves.map(move => {
+            var isLegalRequest = {
+              "position": {
+                "map": self.state.map,
+                "toMove": self.state.toMove,
+                "history": self.state.history
+              },
+              "source": move.source,
+              "dest": move.dest
+            };
+            $.post("/is-legal", JSON.stringify(isLegalRequest), function(isLegal) {
+              // TODO: Refactor into getMoveDetails(move, callback)
+              var augmentedMove = {
+                "source": move.source,
+                "dest": move.dest,
+                "isLegal": isLegal.success,
+                "invalidReason": isLegal.reason
+              };
+              // DEBUG
+              console.log(augmentedMove);
+              self.setState({"selectedMoves": self.state.selectedMoves.concat([augmentedMove])});
+            });
+          });
         });
       } else {
         // Second click: select a dest square
@@ -146,13 +170,13 @@ window.ChessBoard = React.createClass({
         };
         self.setState({"selected": null, "selectedMoves": null});
         if (self.state.selectedMoves.map(move => move.dest).indexOf(loc) != -1) {
-          $.post("/is-legal", JSON.stringify(request), function (data) {
-            if (data.success) {
-              $.post("/make-move", JSON.stringify(request), function (data) {
-                self.setState(data);
+          $.post("/is-legal", JSON.stringify(request), function (isLegal) {
+            if (isLegal.success) {
+              $.post("/make-move", JSON.stringify(request), function (newPosition) {
+                self.setState(newPosition);
               });
             } else {
-              self.setState({"errorMessage": data.reason});
+              self.setState({"errorMessage": isLegal.reason});
             }
           });
         }
@@ -221,7 +245,10 @@ window.ChessBoard = React.createClass({
               : <g></g>}
           {self.state.selectedMoves
               ? self.state.selectedMoves.map((move, i) => (
-                <ShowMove key={"move" + i} color="green" source={move.source} dest={move.dest} />
+                <ShowMove key={"move" + i}
+                    color={move.isLegal ? "green" : "orange"}
+                    dest={move.dest}
+                    source={move.source} />
               ))
               : <g></g>}
           </g>

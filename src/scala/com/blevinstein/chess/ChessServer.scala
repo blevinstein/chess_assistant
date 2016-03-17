@@ -206,8 +206,10 @@ class ChessServlet extends Actor with HttpService {
       }
     } ~
     // Search in these directories for resources
-    getFromDirectory("src/html/v2") ~
-    getFromDirectory("src/html/bower_components")
+    respondWithHeaders(`Cache-Control`(`no-cache`, `no-store`, `must-revalidate`)) {
+      getFromDirectory("src/html/v2") ~
+      getFromDirectory("src/html/bower_components")
+    }
   }
 }
 
