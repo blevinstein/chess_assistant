@@ -4,6 +4,10 @@ var boardStyle = {
   "width": 850
 };
 
+var lineStyle = {
+  "pointerEvents": "none"
+};
+
 var messageStyle = {
   "color": "red"
 };
@@ -18,7 +22,9 @@ var textStyle = {
   "alignmentBaseline": "central",
   "fontFamily": "sans-serif",
   "pointerEvents": "none",
-  "textAnchor": "middle"
+  "textAnchor": "middle",
+  "userSelect": "none",
+  "WebkitUserSelect": "none"
 };
 
 function getCharacter(color, piece) {
@@ -102,7 +108,8 @@ window.ShowMove = React.createClass({
           stroke={this.props.color}
           strokeLinecap="round"
           strokeOpacity="0.5"
-          strokeWidth={1000 / Math.pow(strokeLength, 1)} />
+          strokeWidth={1000 / Math.pow(strokeLength, 1)}
+          style={lineStyle} />
     );
   }
 });
