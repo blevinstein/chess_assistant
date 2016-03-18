@@ -183,10 +183,10 @@ class ChessServlet extends Actor with HttpService {
     } ~
     /**
      * POST is-legal (request: {
-     *    position: Position,
-     *    source: Location,
-     *    dest: Location,
-     *    [promote: Piece] })
+     *     position: Position,
+     *     source: Location,
+     *     dest: Location,
+     *     [promote: Piece] })
      * response: {success: Boolean, [reason: InvalidReason]}
      * Return whether a move is valid, including a reason if it is invalid.
      */
@@ -205,6 +205,10 @@ class ChessServlet extends Actor with HttpService {
         }}
       }
     } ~
+    /**
+     * POST threat-count (request: { position: Position, location: Location })
+     * response: {
+     */
     // Search in these directories for resources
     respondWithHeaders(`Cache-Control`(`no-cache`, `no-store`, `must-revalidate`)) {
       getFromDirectory("src/html/v2") ~

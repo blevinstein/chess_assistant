@@ -75,70 +75,36 @@ case class Position(
   def getAllMoves: List[Move] = getMovesFrom(Location.values)
 
   // Returns true is there is a piece at [src] which is "attacking" location
-  // [dest]. We consider this to be true if the piece at [src] can theoretically
-  // move to [dest], and [dest] is either empty or contains an enemy, and there
-  // are no other pieces blocking this move.
-  def isAttacking(src: Location, dest: Location): Boolean =
-      if (apply(src) != None &&
-          apply(dest) != None &&
-          apply(dest).get._1 == apply(src).get._1) {
-        // piece of same color at destination
-        false
-      } else {
-        getMovesFrom(List(src)).
-            filter{_.dest == dest}.
-            filter(move => move(this) match {
-              case Right(_) => true // legal moves
-              case Left(MustCapture) => true // pawns attacking empty space
-              case Left(WrongColorToMove) => true // irrelevant
-              case Left(OccludedBy(_)) => false // path is blocked
-              case Left(_) => false
-            }).
-            isEmpty.unary_!
-      }
+  // [dest]. We consider this to be true if the piece at [src] can move to
+  // [dest], and there are no other pieces blocking this move.
+  def isThreatening(src: Location, dest: Location): Boolean =
+      getMovesFrom(List(src)).
+          filter{_.dest == dest}.
+          filter(move => move(this) match {
+            case Left(MustCapture) => true // pawns attacking empty space
+            case Left(OccludedBy(_)) => false // path is blocked
+            case Left(SameColor) => true // defending other pieces
+            case Left(WrongColorToMove) => true // irrelevant
+            case Left(_) => false
+            case Right(_) => true // legal moves
+          }).
+          isEmpty.unary_!
 
-  // Returns true is there is a piece at [src] which is "attacking" location
-  // [dest]. We consider this to be true if the piece at [src] can theoretically
-  // move to [dest], and [dest] is either empty or contains a friend, and there
-  // are no other pieces blocking this move.
-  def isDefending(src: Location, dest: Location): Boolean =
-      if (apply(src) != None &&
-          apply(dest) != None &&
-          apply(dest).get._1 != apply(src).get._1) {
-        // piece of different color at destination
-        false
-      } else {
-        getMovesFrom(List(src)).
-            filter{_.dest == dest}.
-            filter(move => move(this) match {
-              case Left(SameColor) => true // defending other pieces
-              case Right(_) => true // legal moves to empty space
-              case Left(MustCapture) => true // pawns attacking empty space
-              case Left(WrongColorToMove) => true // irrelevant
-              case Left(OccludedBy(_)) => false // path is blocked
-              case Left(_) => false
-            }).
-            isEmpty.unary_!
-      }
-
-  def getAttackers(location: Location): List[(Color, Piece, Location)] =
-      Location.values.filter{isAttacking(_, location)}.flatMap{
+  def getThreats(location: Location): List[(Color, Piece, Location)] =
+      Location.values.filter{isThreatening(_, location)}.flatMap{
             loc => apply(loc) match {
               case Some((color, piece)) => Some(color, piece, loc)
               case None => ???
             }
           }
 
-  def getDefenders(location: Location): List[(Color, Piece, Location)] =
-      Location.values.filter{isDefending(_, location)}.flatMap{
-            loc => apply(loc) match {
-              case Some((color, piece)) => Some(color, piece, loc)
-              case None => ???
-            }
-          }
-
-  def getThreatNumber(location: Location): Int =
-      getDefenders(location).size - getAttackers(location).size
+  def getControl(location: Location): Int =
+      getThreats(location).filter{
+        case (color, piece, loc) => color == White
+      }.size -
+      getThreats(location).filter{
+        case (color, piece, loc) => color == Black
+      }.size
 
   // Display functions:
 
@@ -160,20 +126,25 @@ case class Position(
         map(Location(file, rank)) match {
           case None => print("      ")
           case Some((color, piece)) => {
-            val threatNumber = getThreatNumber(Location(file, rank))
+            val control = getControl(Location(file, rank))
+            val normalizedControl = control * (color match {
+              case Black => -1
+              case White => 1
+            })
             color match {
               case Black => print(foregroundBlack)
               case White => print(foregroundWhite)
             }
             print(s" ${getCode(color, piece)} ")
-            if (threatNumber > 0) {
-              print(foregroundLightGreen)
-            } else if (threatNumber == 0) {
-              print (foregroundLightYellow)
+            if (control > 0) {
+              print(foregroundWhite)
+            } else if (control < 0) {
+              print(foregroundBlack)
             } else {
-              print(foregroundRed)
+              print (foregroundLightGrey)
             }
-            print(f"$threatNumber%2d ")
+
+            print(f"$normalizedControl%-3d")
           }
         }
       }
