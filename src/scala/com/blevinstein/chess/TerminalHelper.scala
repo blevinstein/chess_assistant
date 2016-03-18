@@ -11,6 +11,7 @@ object TerminalHelper {
   val backgroundBlack = escape(List(48, 5, 240))
 
   val foregroundWhite  = escape(List(97))
+  val foregroundLightGrey = escape(List(37))
   val foregroundBlack  = escape(List(30))
   val foregroundRed    = escape(List(31))
   val foregroundGreen  = escape(List(32))
