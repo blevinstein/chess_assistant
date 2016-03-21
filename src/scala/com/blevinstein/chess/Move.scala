@@ -150,15 +150,11 @@ object Move {
     case _ => throw new RuntimeException(s"Unhandled move string: $input")
   }
 
-  def find(position: Position, source: Location, dest: Location): Move = {
-    val moves = position.getAllMoves.
-        filter(move => move.source == source && move.dest == dest)
-    if (moves.length == 1) {
-      moves(0)
-    } else {
-      // Prefer legal moves, but allow returning illegal moves as well
-      moves.sortBy(move => if(move.isLegal(position)) 0 else 1).apply(0)
-    }
+  def find(position: Position, source: Location, dest: Location): Option[Move] = {
+    position.getAllMoves.
+        // Prefer legal moves, but allow returning illegal moves as well
+        sortBy(move => if(move.isLegal(position)) 0 else 1).
+        find(move => move.source == source && move.dest == dest)
   }
 
   // Infer a move, given a set of restrictions, such as [dest], [piece],

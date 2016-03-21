@@ -88,7 +88,7 @@ object ChessJsonProtocol extends DefaultJsonProtocol {
       val position = jsObj.fields("position").convertTo[Position]
       val source = jsObj.fields("source").convertTo[Location]
       val dest = jsObj.fields("dest").convertTo[Location]
-      Move.find(position, source, dest)
+      Move.find(position, source, dest).get
     }
     def write(move: Move): JsValue = JsObject(
         "source" -> move.source.toJson,
