@@ -13,8 +13,9 @@ var messageStyle = {
 };
 
 var selectedStyle = {
-  "fill": "yellow",
-  "opacity": 0.5,
+  "fillOpacity": 0,
+  "stroke": "yellow",
+  "strokeWidth": 5,
   "pointerEvents": "none"
 };
 
@@ -57,10 +58,11 @@ Number.prototype.downto = function(t) {
   return list;
 };
 
-/* Given [color] "white"/"black", returns CSS color for rendering */
-function getCssColor(color) {
-  if (color == "white") return "#ddd";
-  if (color == "black") return "#666";
+/* Given [color] "white"/"black", returns CSS style for rendering */
+function getCssStyle(color) {
+  if      (color == "white") return {"fill": "#ddd"};
+  else if (color == "black") return {"fill": "#666"};
+  else if (color == "none") return {"opacity": 0};
   else return "purple";
 }
 
@@ -90,7 +92,7 @@ window.ChessSquare = React.createClass({
   render() {
     return (
       <g onClick={this.handleClick}>
-        <rect fill={getCssColor(this.props.background)}
+        <rect style={getCssStyle(this.props.background)}
             height="100"
             width="100">
         </rect>
@@ -117,8 +119,8 @@ window.ShowMove = React.createClass({
           y2={getPos(this.props.dest)[1] + 50}
           stroke={this.props.color}
           strokeLinecap="round"
-          strokeOpacity="0.75"
-          strokeWidth={1000 / Math.pow(strokeLength, 1)}
+          strokeOpacity={this.props.opacity}
+          strokeWidth={5000 / Math.pow(strokeLength, 1)}
           style={lineStyle} />
     );
   }
@@ -285,9 +287,7 @@ window.ChessBoard = React.createClass({
   },
 
   getMoveColor(move) {
-    console.log(move.isLegal);
-    if      (!move.isLegal) return "lightGrey";
-    else if (move.isOpen) return "orange";
+    if      (move.isOpen) return "orange";
     else if (move.isAttack && move.sourceColor == "white") return "red";
     else if (move.isAttack && move.sourceColor == "black") return "darkRed";
     else if (move.isDefense && move.sourceColor == "white") return "green";
@@ -312,16 +312,42 @@ window.ChessBoard = React.createClass({
                 {rankStr(rank)}
               </text>)}
           <g transform="translate(50, 50)">
+            {allLocations().map((row, i) => (
+              <g key={"rankBackground" + i}>
+                {row.map((location) => (
+                  <g key={"background" + location}
+                      transform={self.getTranslation(location)}>
+                    <ChessSquare key={"background" + location}
+                        background={self.getBackground(location)}
+                        onClick={self.handleClick(location)} />
+                  </g>
+                ))}
+              </g>
+            ))}
+            {self.state.selected
+                ? <g transform={self.getTranslation(self.state.selected)}>
+                  <rect width="100" height="100" style={selectedStyle} />
+                </g>
+                : <g></g>}
+            {self.state.selectedMoves
+                ? self.state.selectedMoves.map((move, i) => (
+                  <ShowMove key={"move" + i}
+                      color={self.getMoveColor(move)}
+                      dest={move.dest}
+                      source={move.source}
+                      opacity={move.isLegal ? 0.7 : 0.2} />
+                ))
+                : <g></g>}
             {allLocations().map(function (row, i) {
               return (
                 <g key={"rank" + i}>
                   {row.map(function (location) {
                     if (self.state.map && self.state.map[location]) {
                       return (
-                        <g transform={self.getTranslation(location)}
-                            key={location}>
+                        <g key={location}
+                            transform={self.getTranslation(location)}>
                           <ChessSquare
-                              background={self.getBackground(location)}
+                              background="none"
                               color={self.state.map[location][0]}
                               piece={self.state.map[location][1]}
                               onClick={self.handleClick(location)} />
@@ -332,7 +358,7 @@ window.ChessBoard = React.createClass({
                         <g transform={self.getTranslation(location)}
                             key={location}>
                           <ChessSquare
-                              background={self.getBackground(location)}
+                              background="none"
                               key={location}
                               onClick={self.handleClick(location)}
                               x={getPos(location)[0]}
@@ -344,19 +370,6 @@ window.ChessBoard = React.createClass({
                 </g>
               )
             })}
-          {self.state.selected
-              ? <g transform={self.getTranslation(self.state.selected)}>
-                <rect width="100" height="100" style={selectedStyle} />
-              </g>
-              : <g></g>}
-          {self.state.selectedMoves
-              ? self.state.selectedMoves.map((move, i) => (
-                <ShowMove key={"move" + i}
-                    color={self.getMoveColor(move)}
-                    dest={move.dest}
-                    source={move.source} />
-              ))
-              : <g></g>}
           </g>
         </svg>
       </div>
