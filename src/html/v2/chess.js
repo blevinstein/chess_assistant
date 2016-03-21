@@ -262,14 +262,14 @@ window.ChessBoard = React.createClass({
         // First click: select a source square
         self.setState({"errorMessage": null, "selected": location});
         // Show moves
-        self.getMovesFrom(location, moves =>
+        self.getMovesTo(location, moves =>
           moves.map((move) => self.getMoveDetails(move, (augmentedMove) =>
             self.setState(
               {"selectedMoves":
                   self.state.selectedMoves.concat([augmentedMove])})
           ))
         );
-        self.getMovesTo(location, moves =>
+        self.getMovesFrom(location, moves =>
           moves.map((move) => self.getMoveDetails(move, (augmentedMove) =>
             self.setState(
               {"selectedMoves":
