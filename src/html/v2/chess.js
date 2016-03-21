@@ -117,7 +117,7 @@ window.ShowMove = React.createClass({
           y2={getPos(this.props.dest)[1] + 50}
           stroke={this.props.color}
           strokeLinecap="round"
-          strokeOpacity="0.5"
+          strokeOpacity="0.75"
           strokeWidth={1000 / Math.pow(strokeLength, 1)}
           style={lineStyle} />
     );
@@ -165,6 +165,7 @@ window.ChessBoard = React.createClass({
   getMoveDetails(move, callback) {
     var self = this;
     var position = self.getPosition();
+    var excludeReasons = ["Wrong color to move", "Can't capture same color"];
     var isLegalRequest = {
       "position": position,
       "source": move.source,
@@ -174,6 +175,7 @@ window.ChessBoard = React.createClass({
       var destData = position.map[move.dest];
       var sourceData = position.map[move.source];
       if (!sourceData) console.log(isLegal, move);
+      console.log(excludeReasons.indexOf(isLegal.reason >= 0));
       var augmentedMove = {
         "dest": move.dest,
         "destColor": destData ? destData[0] : null,
@@ -181,7 +183,7 @@ window.ChessBoard = React.createClass({
         "invalidReason": isLegal.reason,
         "isAttack": destData ? destData[0] != sourceData[0] : false,
         "isDefense": destData ? destData[0] == sourceData[0] : false,
-        "isLegal": isLegal.success,
+        "isLegal": isLegal.success || excludeReasons.indexOf(isLegal.reason) >= 0,
         "isOpen": !destData,
         "source": move.source,
         "sourceColor": sourceData[0],
@@ -283,11 +285,14 @@ window.ChessBoard = React.createClass({
   },
 
   getMoveColor(move) {
-    if (move.isLegal) {
-      return "green";
-    } else {
-      return "orange";
-    }
+    console.log(move.isLegal);
+    if      (!move.isLegal) return "lightGrey";
+    else if (move.isOpen) return "orange";
+    else if (move.isAttack && move.sourceColor == "white") return "red";
+    else if (move.isAttack && move.sourceColor == "black") return "darkRed";
+    else if (move.isDefense && move.sourceColor == "white") return "green";
+    else if (move.isDefense && move.sourceColor == "black") return "darkGreen";
+    else throw ["Uncolorable move", move];
   },
 
   render() {
