@@ -131,7 +131,6 @@ class ChessServlet extends Actor with HttpService {
     /**
       * POST get-all-moves (request: Position)
       * response: List[Move]
-      * Get all moves originating at [source].
       */
     path("get-all-moves") {
       post {
@@ -142,19 +141,28 @@ class ChessServlet extends Actor with HttpService {
         }
       }
     } ~
-    /**
-      * POST get-moves (request: { position: Position, source: Location })
-      * response: List[Move]
-      * Get all moves originating at [source].
-      * TODO: Create more general search, e.g. { position, [source], [dest] }
+    /** POST get-moves
+      * request: {position: Position, [source: Location], [dest: Location]}
+      * Get all moves subject to restrictions on [source] and [dest].
       */
     path("get-moves") {
       post {
         extract(_.request.entity.asString.parseJson.asJsObject) { jsObj => {
           val position = jsObj.fields("position").convertTo[Position]
-          val source = jsObj.fields("source").convertTo[Location]
+          val source: Option[Location] = if (jsObj.fields.contains("source")) {
+            Some(jsObj.fields("source").convertTo[Location])
+          } else {
+            None
+          }
+          val dest: Option[Location] = if (jsObj.fields.contains("dest")) {
+            Some(jsObj.fields("dest").convertTo[Location])
+          } else {
+            None
+          }
           complete {
-            position.getMovesFrom(List(source))
+            position.getAllMoves.
+            filter{ move => source == None || Some(move.source) == source }.
+            filter{ move => dest == None || Some(move.dest) == dest}
           }
         }}
       }
