@@ -169,6 +169,17 @@ window.ChessBoard = React.createClass({
     $.post("/get-moves", JSON.stringify(request), (moves) => callback(moves));
   },
 
+  // Given dest: Location
+  // Calls callback( moves: List[Move] )
+  getMovesTo(dest, callback) {
+    var self = this;
+    var request = {
+      "position": self.getPosition(),
+      "dest": dest
+    };
+    $.post("/get-moves", JSON.stringify(request), (moves) => callback(moves));
+  },
+
   // Returns a Position representing the current board state.
   getPosition() {
     return {
@@ -204,6 +215,13 @@ window.ChessBoard = React.createClass({
         self.setState({"errorMessage": null, "selected": location});
         // Show moves
         self.getMovesFrom(location, moves =>
+          moves.map((move) => self.getMoveDetails(move, (augmentedMove) =>
+            self.setState(
+              {"selectedMoves":
+                  self.state.selectedMoves.concat([augmentedMove])})
+          ))
+        );
+        self.getMovesTo(location, moves =>
           moves.map((move) => self.getMoveDetails(move, (augmentedMove) =>
             self.setState(
               {"selectedMoves":
