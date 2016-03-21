@@ -27,6 +27,8 @@ var textStyle = {
   "WebkitUserSelect": "none"
 };
 
+var BACKSPACE = 8;
+
 function getCharacter(color, piece) {
   if      (color == 'white' && piece == 'K') return "\u2654";
   else if (color == 'white' && piece == 'Q') return "\u2655";
@@ -131,9 +133,29 @@ window.ChessBoard = React.createClass({
 
   componentDidMount() {
     var self = this;
+    $(document.body).on('keydown', this.handleKeyDown);
     $.get("/new-board", function(position) {
       self.setState(position);
     });
+  },
+
+  componentWillUnmount: function() {
+    $(document.body).off('keydown', this.handleKeyDown);
+  },
+
+  handleKeyDown(event) {
+    if (event.keyCode == BACKSPACE) {
+      if (this.state && this.state.history && this.state.history.length > 0) {
+        this.setState({
+          "map": this.state.history[0].map,
+          "toMove": this.state.history[0].toMove,
+          "history": this.state.history.slice(1)
+        });
+      }
+      return false;
+    } else {
+      console.log(event);
+    }
   },
 
   // Given move: { source, dest }
