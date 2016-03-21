@@ -230,12 +230,14 @@ window.ChessBoard = React.createClass({
         );
       } else {
         // Second click: select a dest square
-        // TODO: Here we assume that [selectedMoves] contains moves from [source]. Fix
-        if (self.state.selectedMoves.map(move => move.dest).indexOf(location) != -1) {
-          self.makeMove({"source": self.state.selected, "dest": location},
-              (newPosition) => self.setState(newPosition),
-              (invalidReason) => self.setState({"errorMessage": invalidReason}));
-        }
+        var move = { "source": self.state.selected, "dest": location };
+        self.getMoveDetails(move, (augmentedMove) => {
+          if (augmentedMove.isLegal) {
+            self.makeMove(move,
+                (newPosition) => self.setState(newPosition),
+                (invalidReason) => self.setState({"errorMessage": invalidReason}));
+          }
+        });
         self.setState({"selected": null, "selectedMoves": []});
       }
     };
