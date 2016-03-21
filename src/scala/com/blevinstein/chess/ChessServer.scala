@@ -146,6 +146,7 @@ class ChessServlet extends Actor with HttpService {
       * POST get-moves (request: { position: Position, source: Location })
       * response: List[Move]
       * Get all moves originating at [source].
+      * TODO: Create more general search, e.g. { position, [source], [dest] }
       */
     path("get-moves") {
       post {
