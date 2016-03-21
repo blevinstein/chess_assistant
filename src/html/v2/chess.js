@@ -164,17 +164,28 @@ window.ChessBoard = React.createClass({
   // limiting.
   getMoveDetails(move, callback) {
     var self = this;
+    var position = self.getPosition();
     var isLegalRequest = {
-      "position": self.getPosition(),
+      "position": position,
       "source": move.source,
       "dest": move.dest
     };
     $.post("/is-legal", JSON.stringify(isLegalRequest), function(isLegal) {
+      var destData = position.map[move.dest];
+      var sourceData = position.map[move.source];
+      if (!sourceData) console.log(isLegal, move);
       var augmentedMove = {
-        "source": move.source,
         "dest": move.dest,
+        "destColor": destData ? destData[0] : null,
+        "destPiece": destData ? destData[1] : null,
+        "invalidReason": isLegal.reason,
+        "isAttack": destData ? destData[0] != sourceData[0] : false,
+        "isDefense": destData ? destData[0] == sourceData[0] : false,
         "isLegal": isLegal.success,
-        "invalidReason": isLegal.reason
+        "isOpen": !destData,
+        "source": move.source,
+        "sourceColor": sourceData[0],
+        "sourcePiece": sourceData[1]
       };
       callback(augmentedMove);
     });
@@ -216,10 +227,10 @@ window.ChessBoard = React.createClass({
   // TODO: Add NeedsPromotion extends InvalidReason
   makeMove(move, success, failure) {
     var request = {
-      "position": this.getPosition(),
-      "source": move.source,
       "dest": move.dest,
-      "promote": move.promote
+      "position": this.getPosition(),
+      "promote": move.promote,
+      "source": move.source,
     };
     this.getMoveDetails(request, (augmentedMove) =>
       augmentedMove.isLegal
@@ -265,9 +276,18 @@ window.ChessBoard = React.createClass({
     };
   },
 
+  // TODO: make board resizable
   getTranslation(location) {
     var pos = getPos(location)
     return "translate(" + pos[0] + "," + pos[1] + ")";
+  },
+
+  getMoveColor(move) {
+    if (move.isLegal) {
+      return "green";
+    } else {
+      return "orange";
+    }
   },
 
   render() {
@@ -327,7 +347,7 @@ window.ChessBoard = React.createClass({
           {self.state.selectedMoves
               ? self.state.selectedMoves.map((move, i) => (
                 <ShowMove key={"move" + i}
-                    color={move.isLegal ? "green" : "orange"}
+                    color={self.getMoveColor(move)}
                     dest={move.dest}
                     source={move.source} />
               ))
