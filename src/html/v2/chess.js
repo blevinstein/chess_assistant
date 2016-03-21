@@ -1,7 +1,10 @@
+var BACKSPACE = 8;
+var SIZE = 80;
+
 var boardStyle = {
   "border": "5px solid black",
-  "height": 850,
-  "width": 850
+  "height": 8.5 * SIZE,
+  "width": 8.5 * SIZE
 };
 
 var lineStyle = {
@@ -27,8 +30,6 @@ var textStyle = {
   "userSelect": "none",
   "WebkitUserSelect": "none"
 };
-
-var BACKSPACE = 8;
 
 function getCharacter(color, piece) {
   if      (color == 'white' && piece == 'K') return "\u2654";
@@ -81,7 +82,7 @@ function fileOf(location) { return location.charCodeAt(0) - 97; }
 function rankOf(location) { return location.charCodeAt(1) - 49; }
 
 function getPos(location) {
-  return [fileOf(location) * 100, (7 - rankOf(location)) * 100];
+  return [fileOf(location) * SIZE, (7 - rankOf(location)) * SIZE];
 }
 
 window.ChessSquare = React.createClass({
@@ -93,10 +94,10 @@ window.ChessSquare = React.createClass({
     return (
       <g onClick={this.handleClick}>
         <rect style={getCssStyle(this.props.background)}
-            height="100"
-            width="100">
+            height={SIZE}
+            width={SIZE}>
         </rect>
-        <text style={textStyle} x="50" y="50" fontSize="50">
+        <text style={textStyle} x={SIZE/2} y={SIZE/2} fontSize={SIZE/2} >
           {this.props.piece
               ? getCharacter(this.props.color, this.props.piece)
               : ""}
@@ -113,14 +114,14 @@ window.ShowMove = React.createClass({
     var strokeLength = Math.sqrt(
         Math.pow(source[0] - dest[0], 2) + Math.pow(source[1] - dest[1], 2));
     return (
-      <line x1={getPos(this.props.source)[0] + 50}
-          y1={getPos(this.props.source)[1] + 50}
-          x2={getPos(this.props.dest)[0] + 50}
-          y2={getPos(this.props.dest)[1] + 50}
+      <line x1={getPos(this.props.source)[0] + SIZE/2}
+          y1={getPos(this.props.source)[1] + SIZE/2}
+          x2={getPos(this.props.dest)[0] + SIZE/2}
+          y2={getPos(this.props.dest)[1] + SIZE/2}
           stroke={this.props.color}
           strokeLinecap="round"
           strokeOpacity={this.props.opacity}
-          strokeWidth={5000 / Math.pow(strokeLength, 1)}
+          strokeWidth={50 * SIZE / Math.pow(strokeLength, 1)}
           style={lineStyle} />
     );
   }
@@ -315,14 +316,14 @@ window.ChessBoard = React.createClass({
         </div>
         <svg style={boardStyle}>
           {(0).upto(8).map((file, i) =>
-              <text x={file * 100 + 100} y="25" style={textStyle} key={"fileLabel" + i}>
+              <text x={file * SIZE + SIZE} y="25" style={textStyle} key={"fileLabel" + i}>
                 {fileStr(file)}
               </text>)}
           {(0).upto(8).map((rank, i) =>
-              <text x="25" y={700 - rank * 100 + 100} style={textStyle} key={"rankLabel" + i}>
+              <text x="25" y={7 * SIZE - rank * SIZE + SIZE} style={textStyle} key={"rankLabel" + i}>
                 {rankStr(rank)}
               </text>)}
-          <g transform="translate(50, 50)">
+          <g transform={"translate(" + SIZE/2 + "," + SIZE/2 + ")"}>
             {allLocations().map((row, i) => (
               <g key={"rankBackground" + i}>
                 {row.map((location) => (
@@ -337,7 +338,7 @@ window.ChessBoard = React.createClass({
             ))}
             {self.state.selected
                 ? <g transform={self.getTranslation(self.state.selected)}>
-                  <rect width="100" height="100" style={selectedStyle} />
+                  <rect width={SIZE} height={SIZE} style={selectedStyle} />
                 </g>
                 : <g></g>}
             {self.state.selectedMoves
