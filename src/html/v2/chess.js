@@ -133,12 +133,21 @@ window.ChessBoard = React.createClass({
     return (fileOf(location) + rankOf(location)) % 2 ? "white" : "black";
   },
 
-  componentDidMount() {
+  handleHashChange() {
     var self = this;
+    $.post("/get-board-after",
+        JSON.stringify(document.location.hash.slice(1).split("/")),
+        (position) => self.setState(position));
+  },
+
+  componentDidMount() {
     $(document.body).on('keydown', this.handleKeyDown);
-    $.get("/new-board", function(position) {
-      self.setState(position);
-    });
+    window.onhashchange = this.handleHashChange;
+    if (document.location.hash) {
+      this.handleHashChange();
+    } else {
+      $.get("/new-board", (position) => this.setState(position));
+    }
   },
 
   componentWillUnmount: function() {
@@ -153,6 +162,8 @@ window.ChessBoard = React.createClass({
           "toMove": this.state.history[0].toMove,
           "history": this.state.history.slice(1)
         });
+        var moves = document.location.hash.split("/");
+        document.location.hash = moves.slice(0, moves.length() - 1).join("/");
       }
       return false;
     } else {
@@ -176,8 +187,6 @@ window.ChessBoard = React.createClass({
     $.post("/is-legal", JSON.stringify(isLegalRequest), function(isLegal) {
       var destData = position.map[move.dest];
       var sourceData = position.map[move.source];
-      if (!sourceData) console.log(isLegal, move);
-      console.log(excludeReasons.indexOf(isLegal.reason >= 0));
       var augmentedMove = {
         "dest": move.dest,
         "destColor": destData ? destData[0] : null,
@@ -187,6 +196,7 @@ window.ChessBoard = React.createClass({
         "isDefense": destData ? destData[0] == sourceData[0] : false,
         "isLegal": isLegal.success || excludeReasons.indexOf(isLegal.reason) >= 0,
         "isOpen": !destData,
+        "isStrictlyLegal": isLegal.success,
         "source": move.source,
         "sourceColor": sourceData[0],
         "sourcePiece": sourceData[1]
@@ -237,7 +247,7 @@ window.ChessBoard = React.createClass({
       "source": move.source,
     };
     this.getMoveDetails(request, (augmentedMove) =>
-      augmentedMove.isLegal
+      augmentedMove.isStrictlyLegal
           ?  $.post("/make-move", JSON.stringify(request), (newPosition) =>
               success(newPosition))
           : failure(augmentedMove.invalidReason)
@@ -268,13 +278,14 @@ window.ChessBoard = React.createClass({
       } else {
         // Second click: select a dest square
         var move = { "source": self.state.selected, "dest": location };
-        self.getMoveDetails(move, (augmentedMove) => {
-          if (augmentedMove.isLegal) {
+        self.getMoveDetails(move, (augmentedMove) =>
             self.makeMove(move,
-                (newPosition) => self.setState(newPosition),
-                (invalidReason) => self.setState({"errorMessage": invalidReason}));
-          }
-        });
+                (newPosition) => {
+                  var piece = newPosition.map[move.dest][1];
+                  document.location.hash += "/" + (piece != 'P' ? piece : '') + move.source + move.dest;
+                  self.setState(newPosition);
+                },
+                (invalidReason) => self.setState({"errorMessage": invalidReason})));
         self.setState({"selected": null, "selectedMoves": []});
       }
     };

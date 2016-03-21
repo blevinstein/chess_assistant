@@ -129,6 +129,21 @@ class ChessServlet extends Actor with HttpService {
       }
     } ~
     /**
+     * POST get-board-after (moves: List[String])
+     * response: Position
+     * Returns the state of the board after [moves] are made. Moves should be in
+     * algebraic notation.
+     */
+    path("get-board-after") {
+      post {
+        extract(_.request.entity.asString.parseJson.convertTo[List[String]]) {
+          moves => complete {
+            Position.create(moves.filter{_.length() > 0})
+          }
+        }
+      }
+    } ~
+    /**
       * POST get-all-moves (request: Position)
       * response: List[Move]
       */

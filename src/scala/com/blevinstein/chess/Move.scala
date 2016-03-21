@@ -79,6 +79,19 @@ object Move {
                 Pawn,
                 debugStr = input)
 
+    // e.g. b2c3
+    case Array(sourceFileStr, sourceRankStr, fileStr, rankStr)
+        if strToFile.contains(fileStr) &&
+        strToFile.contains(sourceFileStr) &&
+        strToRank.contains(rankStr) &&
+        strToRank.contains(sourceRankStr) =>
+            infer(position,
+                Location(fileStr + rankStr),
+                Pawn,
+                sourcePredicate =
+                    createSourcePredicate(sourceFileStr + sourceRankStr),
+                debugStr = input)
+
     // e.g. Nb3
     case Array(pieceStr, fileStr, rankStr)
         if strToRank.contains(rankStr) &&
