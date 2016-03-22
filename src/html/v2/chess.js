@@ -1,4 +1,4 @@
-var BACKSPACE = 8;
+var LEFT_ARROW = 37;
 var SIZE = 80;
 
 var boardStyle = {
@@ -138,7 +138,10 @@ window.ChessBoard = React.createClass({
     var self = this;
     $.post("/get-board-after",
         JSON.stringify(document.location.hash.slice(1).split("/")),
-        (position) => self.setState(position));
+        (position) => {
+          self.setState(position);
+          self.setState({"errorMessage": null, "selected": null, "selectedMoves": []});
+        });
   },
 
   componentDidMount() {
@@ -155,17 +158,21 @@ window.ChessBoard = React.createClass({
     $(document.body).off('keydown', this.handleKeyDown);
   },
 
+  rewind() {
+    if (this.state && this.state.history && this.state.history.length > 0) {
+      this.setState({
+        "history": this.state.history.slice(1),
+        "map": this.state.history[0].map,
+        "toMove": this.state.history[0].toMove
+      });
+      var moves = document.location.hash.split("/");
+      document.location.hash = moves.slice(0, moves.length - 1).join("/");
+    }
+  },
+
   handleKeyDown(event) {
-    if (event.keyCode == BACKSPACE) {
-      if (this.state && this.state.history && this.state.history.length > 0) {
-        this.setState({
-          "map": this.state.history[0].map,
-          "toMove": this.state.history[0].toMove,
-          "history": this.state.history.slice(1)
-        });
-        var moves = document.location.hash.split("/");
-        document.location.hash = moves.slice(0, moves.length() - 1).join("/");
-      }
+    if (event.keyCode == LEFT_ARROW) {
+      this.rewind();
       return false;
     } else {
       console.log(event);
