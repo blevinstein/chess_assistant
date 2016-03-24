@@ -74,14 +74,14 @@ case class Position(
 
   def getAllMoves: List[Move] = getMovesFrom(Location.values)
 
-  // Returns true is there is a piece at [src] which is "attacking" location
+  // Returns true is there is a piece at [src] which is "threatening" location
   // [dest]. We consider this to be true if the piece at [src] can move to
   // [dest], and there are no other pieces blocking this move.
   def isThreatening(src: Location, dest: Location): Boolean =
       getMovesFrom(List(src)).
           filter{_.dest == dest}.
           filter(move => move(this) match {
-            case Left(MustCapture) => true // pawns attacking empty space
+            case Left(MustCapture) => true // pawns threatening empty space
             case Left(OccludedBy(_)) => false // path is blocked
             case Left(SameColor) => true // defending other pieces
             case Left(WrongColorToMove) => true // irrelevant

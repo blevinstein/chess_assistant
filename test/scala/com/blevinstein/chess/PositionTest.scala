@@ -84,7 +84,7 @@ class PositionTest extends FunSuite with Matchers {
     pos.getAllMoves.contains(Castle(Black, false)) shouldEqual true
   }
 
-  test("isAttacking") {
+  test("isThreatening") {
     val pos = Position(
         Map(Location("d1") -> Some(White, Queen),
             Location("c2") -> Some(White, Pawn),
@@ -95,41 +95,19 @@ class PositionTest extends FunSuite with Matchers {
         List.empty)
 
     // White queen
-    pos.isAttacking("d1", "c2") shouldEqual false
-    pos.isAttacking("d1", "d3") shouldEqual false
-    pos.isAttacking("d1", "a4") shouldEqual false
-    pos.isAttacking("d1", "d4") shouldEqual false
-    pos.isAttacking("d1", "g4") shouldEqual true
+    pos.isThreatening("d1", "c2") shouldEqual true
+    pos.isThreatening("d1", "d3") shouldEqual true
+    pos.isThreatening("d1", "a4") shouldEqual false
+    pos.isThreatening("d1", "d4") shouldEqual false
+    pos.isThreatening("d1", "g4") shouldEqual true
+    pos.isThreatening("d1", "h4") shouldEqual false
 
     // Black queen
-    pos.isAttacking("d4", "d1") shouldEqual false
-    pos.isAttacking("d4", "d3") shouldEqual true
-    pos.isAttacking("d4", "a4") shouldEqual true
-    pos.isAttacking("d4", "c2") shouldEqual false
-    pos.isAttacking("d4", "g4") shouldEqual true
-  }
-
-  test("isDefending") {
-    val pos = Position(
-        Map(Location("d1") -> Some(White, Queen),
-            Location("c2") -> Some(White, Pawn),
-            Location("d3") -> Some(White, Pawn),
-            Location("a4") -> Some(White, Pawn),
-            Location("d4") -> Some(Black, Queen)).withDefaultValue(None),
-        White,
-        List.empty)
-
-    pos.isDefending("d1", "c2") shouldEqual true
-    pos.isDefending("d1", "d3") shouldEqual true
-    pos.isDefending("d1", "a4") shouldEqual false
-    pos.isDefending("d1", "d4") shouldEqual false
-    pos.isDefending("d1", "g4") shouldEqual true
-
-    // Black queen
-    pos.isDefending("d4", "d1") shouldEqual false
-    pos.isDefending("d4", "d3") shouldEqual false
-    pos.isDefending("d4", "a4") shouldEqual false
-    pos.isDefending("d4", "c2") shouldEqual false
-    pos.isDefending("d4", "g4") shouldEqual true
+    pos.isThreatening("d4", "d1") shouldEqual false
+    pos.isThreatening("d4", "d3") shouldEqual true
+    pos.isThreatening("d4", "a4") shouldEqual true
+    pos.isThreatening("d4", "c2") shouldEqual false
+    pos.isThreatening("d4", "g4") shouldEqual true
+    pos.isThreatening("d4", "g6") shouldEqual false
   }
 }
