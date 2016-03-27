@@ -121,7 +121,7 @@ window.ShowMove = React.createClass({
           stroke={this.props.color}
           strokeLinecap="round"
           strokeOpacity={this.props.opacity}
-          strokeWidth={50 * SIZE / Math.pow(strokeLength, 1)}
+          strokeWidth={3 * SIZE / Math.pow(strokeLength, 0.5)}
           style={lineStyle} />
     );
   }
