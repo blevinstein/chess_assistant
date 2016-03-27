@@ -135,13 +135,12 @@ window.ChessBoard = React.createClass({
   },
 
   handleHashChange() {
-    var self = this;
     $.post("/get-board-after",
         JSON.stringify(document.location.hash.slice(1).split("/")),
         (position) => {
-          self.setState(position);
-          self.setState({"errorMessage": null, "selected": null, "selectedMoves": []});
-        });
+          this.setState(position);
+          this.setState({"errorMessage": null, "selected": null, "selectedMoves": []});
+        }.bind(this));
   },
 
   componentDidMount() {
@@ -184,8 +183,7 @@ window.ChessBoard = React.createClass({
   // TODO: Think about refactoring to take [position] as an arg. This is very
   // limiting.
   getMoveDetails(move, callback) {
-    var self = this;
-    var position = self.getPosition();
+    var position = this.getPosition();
     var excludeReasons = ["Wrong color to move", "Can't capture same color"];
     var isLegalRequest = {
       "position": position,
@@ -216,9 +214,8 @@ window.ChessBoard = React.createClass({
   // Given source: Location
   // Calls callback( moves: List[Move] )
   getMovesFrom(source, callback) {
-    var self = this;
     var request = {
-      "position": self.getPosition(),
+      "position": this.getPosition(),
       "source": source
     };
     $.post("/get-moves", JSON.stringify(request), (moves) => callback(moves));
@@ -227,9 +224,8 @@ window.ChessBoard = React.createClass({
   // Given dest: Location
   // Calls callback( moves: List[Move] )
   getMovesTo(dest, callback) {
-    var self = this;
     var request = {
-      "position": self.getPosition(),
+      "position": this.getPosition(),
       "dest": dest
     };
     $.post("/get-moves", JSON.stringify(request), (moves) => callback(moves));
@@ -263,40 +259,46 @@ window.ChessBoard = React.createClass({
   },
 
   handleClick(location) {
-    var self = this;
     return function (event) {
-      if (!self.state.selected) {
+      if (!this.state.selected) {
         // First click: select a source square
-        self.setState({"errorMessage": null, "selected": location});
+        this.setState({"errorMessage": null, "selected": location});
         // Show moves
-        self.getMovesTo(location, moves =>
-          moves.map((move) => self.getMoveDetails(move, (augmentedMove) =>
-            self.setState(
-              {"selectedMoves":
-                  self.state.selectedMoves.concat([augmentedMove])})
-          ))
+        this.getMovesTo(location, moves =>
+          moves.map((move) => {
+            this.getMoveDetails(move, (augmentedMove) => {
+              this.setState(
+                {"selectedMoves":
+                    this.state.selectedMoves.concat([augmentedMove])})
+            }.bind(this))
+          }.bind(this))
         );
-        self.getMovesFrom(location, moves =>
-          moves.map((move) => self.getMoveDetails(move, (augmentedMove) =>
-            self.setState(
-              {"selectedMoves":
-                  self.state.selectedMoves.concat([augmentedMove])})
-          ))
+        this.getMovesFrom(location, moves =>
+          moves.map((move) => {
+            this.getMoveDetails(move, (augmentedMove) => {
+              this.setState(
+                {"selectedMoves":
+                    this.state.selectedMoves.concat([augmentedMove])})
+            }.bind(this))
+          }.bind(this))
         );
       } else {
         // Second click: select a dest square
-        var move = { "source": self.state.selected, "dest": location };
-        self.getMoveDetails(move, (augmentedMove) =>
-            self.makeMove(move,
-                (newPosition) => {
-                  var piece = newPosition.map[move.dest][1];
-                  document.location.hash += "/" + (piece != 'P' ? piece : '') + move.source + move.dest;
-                  self.setState(newPosition);
-                },
-                (invalidReason) => self.setState({"errorMessage": invalidReason})));
-        self.setState({"selected": null, "selectedMoves": []});
+        var move = { "source": this.state.selected, "dest": location };
+        this.getMoveDetails(move, (augmentedMove) => {
+          this.makeMove(move,
+            (newPosition) => {
+              var piece = newPosition.map[move.dest][1];
+              document.location.hash += "/" + (piece != 'P' ? piece : '') + move.source + move.dest;
+              this.setState(newPosition);
+            }.bind(this),
+            (invalidReason) => {
+              this.setState({"errorMessage": invalidReason})
+            }.bind(this))
+        }.bind(this));
+        this.setState({"selected": null, "selectedMoves": []});
       }
-    };
+    }.bind(this);
   },
 
   // TODO: make board resizable
@@ -315,11 +317,10 @@ window.ChessBoard = React.createClass({
   },
 
   render() {
-    var self = this;
     return (
       <div>
         <div style={messageStyle}>
-          {self.state.errorMessage ? self.state.errorMessage : ""}
+          {this.state.errorMessage ? this.state.errorMessage : ""}
         </div>
         <svg style={boardStyle}>
           {(0).upto(8).map((file, i) =>
@@ -331,64 +332,64 @@ window.ChessBoard = React.createClass({
                 {rankStr(rank)}
               </text>)}
           <g transform={"translate(" + SIZE/2 + "," + SIZE/2 + ")"}>
-            {allLocations().map((row, i) => (
-              <g key={"rankBackground" + i}>
-                {row.map((location) => (
-                  <g key={"background" + location}
-                      transform={self.getTranslation(location)}>
+            {allLocations().map((row, i) => {
+              return <g key={"rankBackground" + i}>
+                {row.map((location) => {
+                  return <g key={"background" + location}
+                      transform={this.getTranslation(location)}>
                     <ChessSquare key={"background" + location}
-                        background={self.getBackground(location)}
-                        onClick={self.handleClick(location)} />
+                        background={this.getBackground(location)}
+                        onClick={this.handleClick(location)} />
                   </g>
-                ))}
+                }.bind(this))}
               </g>
-            ))}
-            {self.state.selected
-                ? <g transform={self.getTranslation(self.state.selected)}>
+            }.bind(this))}
+            {this.state.selected
+                ? <g transform={this.getTranslation(this.state.selected)}>
                   <rect width={SIZE} height={SIZE} style={selectedStyle} />
                 </g>
                 : <g></g>}
-            {self.state.selectedMoves
-                ? self.state.selectedMoves.map((move, i) => (
-                  <ShowMove key={"move" + i}
-                      color={self.getMoveColor(move)}
+            {this.state.selectedMoves
+                ? this.state.selectedMoves.map((move, i) => {
+                  return <ShowMove key={"move" + i}
+                      color={this.getMoveColor(move)}
                       dest={move.dest}
                       source={move.source}
                       opacity={move.isLegal ? 0.7 : 0.2} />
-                ))
+                }.bind(this))
                 : <g></g>}
-            {allLocations().map(function (row, i) {
+            {allLocations().map((row, i) => {
               return (
                 <g key={"rank" + i}>
-                  {row.map(function (location) {
-                    if (self.state.map && self.state.map[location]) {
+                  {row.map((location) => {
+                    if (this.state.map && this.state.map[location]) {
                       return (
                         <g key={location}
-                            transform={self.getTranslation(location)}>
+                            transform={this.getTranslation(location)}>
                           <ChessSquare
                               background="none"
-                              color={self.state.map[location][0]}
-                              piece={self.state.map[location][1]}
-                              onClick={self.handleClick(location)} />
+                              color={this.state.map[location][0]}
+                              piece={this.state.map[location][1]}
+                              onClick={this.handleClick(location)} />
                         </g>
                       );
                     } else {
                       return (
-                        <g transform={self.getTranslation(location)}
+                        <g transform={this.getTranslation(location)}
                             key={location}>
                           <ChessSquare
                               background="none"
                               key={location}
-                              onClick={self.handleClick(location)}
+                              onClick={this.handleClick(location)}
                               x={getPos(location)[0]}
                               y={getPos(location)[1]}/>
                         </g>
                       );
                     }
-                  })}
+                  }.bind(this))}
                 </g>
               )
-            })}
+            }.bind(this))}
           </g>
         </svg>
       </div>
