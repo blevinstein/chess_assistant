@@ -1,3 +1,5 @@
+"use strict";
+
 var LEFT_ARROW = 37;
 var SIZE = 80;
 
